@@ -1,2 +1,2 @@
 # ST558_Project_3
-Group project - Smitali Patnaik
+Group project - Smitali Patnaik & Paula Bailey
