@@ -1,0 +1,104 @@
+---
+title: "Project 3 - Predicitive Models"
+author: "Smitali Paknaik and Paula Bailey"
+date: "2022-11-04"
+output: 
+  html_document:
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    theme: readable
+    df_print: "paged"
+params:
+  group:"lifestyle"
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction section
+
+
+
+
+  * The following packages are required for creating predictive models.
+
+1. `dplyr` - A part of the `tidyverse` used for manipulating data
+2. `tidyr` - A part of the `tidyverse` used for data cleaning
+3. `ggplot2` - A part of the `tidyverse` used for creating graphics
+4. 
+
+
+```{r lib, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(purr)
+library(markdown)
+library(caret)
+
+```
+
+We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predicitive variables, so we will remove them from our data set.  Afterwards, we parsed out the six lifestyle groups from the data set.
+
+# Load Data and Parse Groups
+```{r}
+data <- read.csv("OnlineNewsPopularity.csv") %>% select(-url, -timedelta)
+
+# just for completing the analysis; I don't think we will need this information once everything is automated correctly.
+lifestyle     <- data[data$data_channel_is_lifestyle == 1,]
+entertainment <- data[data$data_channel_is_entertainment == 1,]
+bus           <- data[data$data_channel_is_bus == 1,]
+socmed        <- data[data$data_channel_is_socmed == 1,]
+tech          <- data[data$data_channel_is_tech == 1,]
+world         <- data[data$data_channel_is_world == 1,]
+```
+
+# Train and Test on practice - Lifestyle
+```{r}
+
+set.seed(21)
+trainIndex <- createDataPartition(lifestyle$share, p = 0.7, list = FALSE)
+lifestyleTrain <- lifestyle[trainIndex, ]
+lifestyleTest <- lifestyle[-trainIndex, ]
+
+```
+
+# Linear Regerssion
+Paula - need to add short explanation on linear regression
+Paula - summary on training data
+Paula - also need to create individual LM
+
+
+# Random Forest
+Paula - Create RF
+
+
+
+
+
+-----------------IGNORE for NOW----------------
+Test area for params
+to automatic Rmarkdown, see topic 2 notes, beginning on page 329: rewatch video
+```{r}
+#groups
+socialID <- c("Lifestyle", "Entertainment","Business", "SocialMedia", "Tech", "World" )
+#create filename
+output_file <- paste0(socialID, "Analysis.html")
+#create a group for each team with just the team name parameter
+params = lapply(socialID, FUN = function(x){list(id = x)})
+
+#put into a data frame
+reports <- tibble(output_file, params)
+
+
+```
+
+```{r}
+#::render("files/Project3.Rmd", output_file = "LifestyleAnalysis.html",
+#params = list(team = "lifestyle"))
+```
+
+------------------------------------------------------------
