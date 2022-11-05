@@ -102,3 +102,11 @@ reports <- tibble(output_file, params)
 ```
 
 ------------------------------------------------------------
+## Smitali 
+SOW
+
+Introduction Section 
+Summary statistics each member to show contribution
+1- Linear Regression - each member 
+Boosted Tree Model (with CV)
+Any other support 
