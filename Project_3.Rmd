@@ -33,17 +33,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r lib, include = FALSE}
+
 library(tidyverse)
 library(ggplot2)
-library(purr)
+library(purrr)
 library(markdown)
 library(caret)
+library(GGally)     #create ggcorr and ggpairs plots
 
 ```
 
 We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predicitive variables, so we will remove them from our data set.  Afterwards, we parsed out the six lifestyle groups from the data set.
 
-# Load Data and Parse Groups
+# Load Data, Parse Groups,
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% select(-url, -timedelta)
 
@@ -56,6 +58,13 @@ tech          <- data[data$data_channel_is_tech == 1,]
 world         <- data[data$data_channel_is_world == 1,]
 ```
 
+check for missing values
+
+```{r}
+anyNA(data)
+```
+
+
 # Train and Test on practice - Lifestyle
 ```{r}
 
@@ -66,10 +75,74 @@ lifestyleTest <- lifestyle[-trainIndex, ]
 
 ```
 
+
+## Summaries on Training Data
+```{r}
+lifestyle %>% select(shares, starts_with("self"), starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
+```
+Look at any others to see if their results should be included
+
+We see the distribution of the response variable (shares) is:  
+
+    **Right-skewed** if its mean is **greater** than its median.    
+    **Left-skewed** if its mean is **less** than its median.    
+    **Normal** if its mean **equals** to its median.    
+
+
+**Add contingency tables**
+**Must have 3 graphs each of the data**
+
+Share and positive words - hmmm, I expected something a bit more interesting....I figures there would be an uptick in articles shared.  Come back
+```{r}
+ggplot(lifestyle, aes(x=rate_positive_words, y = shares ))+geom_point()
+```
+
+Share and self_reference_avg_sharess
+```{r}
+ggplot(lifestyle, aes(x = shares ))+geom_histogram(bins = )
+```
+shares and global_sentiment_polarity
+```{r}
+ggplot(lifestyle, aes(x=global_sentiment_polarity, y = shares ))+geom_point()
+```
+We want to remove any predictor variables that are highly correlated to the response variable as called multicollinearity.  if variables have this characteristic it can lead to skewed or misleading results. We will create grouping of ten predictor variables to look at the relationship with our response variable share.
+
+Looking at the results from the `ggcorr`, we do not see any highly correlated relationships.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for Highly negative correlated
+
+
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens, num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select( average_token_length, num_keywords, data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world, shares),label_round = 2)
+```
+
+
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, weekday_is_monday, weekday_is_tuesday,  weekday_is_wednesday, weekday_is_thursday, weekday_is_friday, weekday_is_saturday, weekday_is_sunday, is_weekend, shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "TRUE")
+```
+```{r}
+ggcorr(lifestyleTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity,  title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
+```
+
 # Linear Regerssion
-Paula - need to add short explanation on linear regression
-Paula - summary on training data
-Paula - also need to create individual LM
+
+Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line"
+
+For a Simple Linear Regression, we one response variable and one predictor variables. It uses the formula y = b0 + b1x, where....
+
+For Multiple Linear Regression, we have one response variable and any number of predictor variable. It uses the formula Y = β0 + β1X1 + β2X2 + … + βpXp + ε, where .....
+
+Also add the 4 assumptions - linear relationship, independence, homoscedasticity, and Normality.
 
 
 # Random Forest
@@ -82,9 +155,12 @@ Paula - Create RF
 -----------------IGNORE for NOW----------------
 Test area for params
 to automatic Rmarkdown, see topic 2 notes, beginning on page 329: rewatch video
+
+# Automation of data 
 ```{r}
-#groups
+#groups - need to consider a way to read in groups without hardcoding
 socialID <- c("Lifestyle", "Entertainment","Business", "SocialMedia", "Tech", "World" )
+testID <- "Lifestyle"
 #create filename
 output_file <- paste0(socialID, "Analysis.html")
 #create a group for each team with just the team name parameter
@@ -92,6 +168,17 @@ params = lapply(socialID, FUN = function(x){list(id = x)})
 
 #put into a data frame
 reports <- tibble(output_file, params)
+
+library(rmarkdown)
+
+apply(reports, MARGIN = 1,
+      FUN = function(x){
+        render(input = "./Project_3.Rmd",
+               output_format = "github_document", 
+               output_file = x[[1]], 
+               params = x[[2]])
+      })
+
 
 
 ```
