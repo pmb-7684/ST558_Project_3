@@ -43,25 +43,62 @@ library(GGally)     #create ggcorr and ggpairs plots
 
 ```
 
-We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predicitive variables, so we will remove them from our data set.  Afterwards, we parsed out the six lifestyle groups from the data set.
+We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, we parsed out the six lifestyle groups from the data set.
 
-# Load Data, Parse Groups,
+# Load Data, and check for NA
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% select(-url, -timedelta)
 
-# just for completing the analysis; I don't think we will need this information once everything is automated correctly.
-lifestyle     <- data[data$data_channel_is_lifestyle == 1,]
-entertainment <- data[data$data_channel_is_entertainment == 1,]
-bus           <- data[data$data_channel_is_bus == 1,]
-socmed        <- data[data$data_channel_is_socmed == 1,]
-tech          <- data[data$data_channel_is_tech == 1,]
-world         <- data[data$data_channel_is_world == 1,]
+#check for missing values
+anyNA(data)  
 ```
 
-check for missing values
+For the automation, it will be easier if all the channels are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
+```{r}
+dataPivot <- data %>% pivot_longer(cols = data_channel_is_lifestyle:data_channel_is_world, names_to = "channel",values_to = "Temp") 
+
+head(dataPivot)
+```
+Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  The final data set has 33510 obs....**double check that you are not loosing too much data**  The original data set had 39644 obs, so we lost over 6000 observations... hmm.,, I'm fine with pivot, but not sure about removing missing information for day of the week.... again, come back.
 
 ```{r}
-anyNA(data)
+newData <- dataPivot %>% filter(Temp != 0) %>% select(-Temp)
+```
+
+These are my notes, so it seems like I'm jumping around.  I will perform pivot on "weekday" information as well. Afterwards, remove Temp2 which represents articles without a day of the week listed.  
+
+```{r}
+dataPivot1 <- newData %>% pivot_longer(cols = weekday_is_monday:weekday_is_sunday, names_to = "weekday",values_to = "Temp1") 
+```
+
+
+```{r}
+newData <- dataPivot1 %>% filter(Temp1 != 0) %>% select(-Temp1)
+```
+
+
+```{r}
+head(newData)
+```
+
+
+```{r}
+colnames(newData)
+```
+
+```{r}
+unique(newData$channel)
+```
+
+
+```{r}
+# just for completing the analysis; I don't think we will need format once everything is automated correctly.  
+lifestyle     <- newData %>% filter(channel == "data_channel_is_lifestyle")
+entertainment <- newData%>% filter(channel == "data_channel_is_entertainment")
+bus           <- newData%>% filter(channel == "data_channel_is_bus")
+socmed        <- newData%>% filter(channel == "data_channel_is_socmed")
+tech          <- newData%>% filter(channel == "data_channel_is_tech")
+world         <- newData%>% filter(channel == "data_channel_is_world")
 ```
 
 
@@ -69,7 +106,7 @@ anyNA(data)
 ```{r}
 
 set.seed(21)
-trainIndex <- createDataPartition(lifestyle$share, p = 0.7, list = FALSE)
+trainIndex <- createDataPartition(lifestyle$shares, p = 0.7, list = FALSE)
 lifestyleTrain <- lifestyle[trainIndex, ]
 lifestyleTest <- lifestyle[-trainIndex, ]
 
@@ -82,7 +119,7 @@ lifestyle %>% select(shares, starts_with("self"), starts_with("rate"), starts_wi
 ```
 Look at any others to see if their results should be included
 
-We see the distribution of the response variable (shares) is:  
+We see the distribution of several quantitative variable  
 
     **Right-skewed** if its mean is **greater** than its median.    
     **Left-skewed** if its mean is **less** than its median.    
@@ -92,30 +129,36 @@ We see the distribution of the response variable (shares) is:
 **Add contingency tables**
 **Must have 3 graphs each of the data**
 
-Share and positive words - hmmm, I expected something a bit more interesting....I figures there would be an uptick in articles shared.  Come back
+Share and positive words - hmmm, I expected something a bit more interesting....I figures there would be an uptick in articles shared.  Come back... JUst creating a bunch of plots to see what is interesting.
 ```{r}
 ggplot(lifestyle, aes(x=rate_positive_words, y = shares ))+geom_point()
 ```
 
-Share and self_reference_avg_sharess
 ```{r}
-ggplot(lifestyle, aes(x = shares ))+geom_histogram(bins = )
+ggplot(lifestyle, aes(x = shares ))+geom_boxplot(position = "dodge")
+```
+
+Share histogram
+```{r}
+ggplot(lifestyle, aes(x = shares ))+geom_histogram()
 ```
 shares and global_sentiment_polarity
 ```{r}
-ggplot(lifestyle, aes(x=global_sentiment_polarity, y = shares ))+geom_point()
+ggplot(lifestyle, aes(x=num_videos, y = shares ))+geom_point()
 ```
 We want to remove any predictor variables that are highly correlated to the response variable as called multicollinearity.  if variables have this characteristic it can lead to skewed or misleading results. We will create grouping of ten predictor variables to look at the relationship with our response variable share.
 
-Looking at the results from the `ggcorr`, we do not see any highly correlated relationships.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for Highly negative correlated
+Looking at the results from the `ggcorr`, we do not see any highly correlated relationships.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.
+
+**need to make corr plot look better - see if can change font on label**
 
 
 ```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens, num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label = "TRUE")
+ggcorr(lifestyleTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens, num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label = "TRUE", label_size=3)
 ```
 
 ```{r}
-ggcorr(lifestyleTrain%>% dplyr::select( average_token_length, num_keywords, data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world, shares),label_round = 2)
+ggcorr(lifestyleTrain%>% dplyr::select( average_token_length, num_keywords, shares),label_round = 2)
 ```
 
 
@@ -124,7 +167,7 @@ ggcorr(lifestyleTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_mi
 ```
 
 ```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, weekday_is_monday, weekday_is_tuesday,  weekday_is_wednesday, weekday_is_thursday, weekday_is_friday, weekday_is_saturday, weekday_is_sunday, is_weekend, shares),label_round = 2, label = "TRUE")
+ggcorr(lifestyleTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, shares),label_round = 2, label = "TRUE")
 ```
 
 ```{r}
@@ -133,6 +176,10 @@ ggcorr(lifestyleTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04, g
 ```{r}
 ggcorr(lifestyleTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity,  title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
 ```
+# Varaible Selection
+The final data set has 
+
+
 
 # Linear Regerssion
 
@@ -140,7 +187,7 @@ Linear regression is a method to understand the relationship between a response 
 
 For a Simple Linear Regression, we one response variable and one predictor variables. It uses the formula y = b0 + b1x, where....
 
-For Multiple Linear Regression, we have one response variable and any number of predictor variable. It uses the formula Y = β0 + β1X1 + β2X2 + … + βpXp + ε, where .....
+For Multiple Linear Regression, we have one response variable and any number of predictor variable. It uses the formula Y = B0 + B1X1 + B2X2 + … + BpXp + E, where .....
 
 Also add the 4 assumptions - linear relationship, independence, homoscedasticity, and Normality.
 
@@ -160,7 +207,7 @@ to automatic Rmarkdown, see topic 2 notes, beginning on page 329: rewatch video
 ```{r}
 #groups - need to consider a way to read in groups without hardcoding
 socialID <- c("Lifestyle", "Entertainment","Business", "SocialMedia", "Tech", "World" )
-testID <- "Lifestyle"
+
 #create filename
 output_file <- paste0(socialID, "Analysis.html")
 #create a group for each team with just the team name parameter
