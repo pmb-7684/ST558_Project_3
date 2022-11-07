@@ -120,6 +120,11 @@ lifestyleTest <- lifestyle[-trainIndex, ]
 
 
 ## Summaries on Training Data
+
+```{r}
+str(newData)
+```
+
 ```{r}
 lifestyle %>% dplyr::select(shares, starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
 ```
