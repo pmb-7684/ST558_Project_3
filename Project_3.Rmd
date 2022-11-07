@@ -298,7 +298,7 @@ abs_title_sentiment_polarity)
 
 ## Variable Selection
 
-Even though we have reduced the predictors in the model using correlation, I decided to complete Best Selection on the final group of variables.
+Even though we have reduced the predictors in the model using correlation, I decided to complete Best Selection on the final group of variables.  Come back - results do not look corret. review and delete later. Try using regsubset()
 
 
 ```{r}
