@@ -34,20 +34,39 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r lib, include = FALSE}
 
-library(tidyverse)
-library(ggplot2)
-library(purrr)
-library(markdown)
-library(caret)
+library(caret)      #training/test (splitting)
+library(glmnet)     #best subset selection
 library(GGally)     #create ggcorr and ggpairs plots
+library(ggplot2)
+library(leaps)      #identify different best models of different sizes
+library(markdown)
+library(MASS)       #access to forward and backward selection algorithms
+library(purrr)
+library(tidyverse)  #tidyverse set of packages and functions
 
 ```
 
-We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, we parsed out the six lifestyle groups from the data set.
+We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, I checked to validate the data set contained no missed values.  
+
+
 
 # Load Data, and check for NA
 ```{r}
-data <- read.csv("OnlineNewsPopularity.csv") %>% select(-url, -timedelta)
+data <- read.csv("OnlineNewsPopularity.csv") %>% 
+                              rename(`Lifestyle` =`data_channel_is_lifestyle`,
+                                    Entertainment = `data_channel_is_entertainment`,
+                                    Business      = `data_channel_is_bus`,
+                                    SocialMedia = `data_channel_is_socmed`,
+                                    Technology    = `data_channel_is_tech`,
+                                    World       = `data_channel_is_world`,
+                                    Monday      = `weekday_is_monday`,
+                                    Tuesday     = `weekday_is_tuesday`,
+                                    Wednesday   = `weekday_is_wednesday`,
+                                    Thursday    = `weekday_is_thursday`,
+                                    Friday      = `weekday_is_friday`,
+                                    Saturday    = `weekday_is_saturday`,
+                                    Sunday      = `weekday_is_sunday`) %>% 
+                                    dplyr::select(-url, -timedelta)
 
 #check for missing values
 anyNA(data)  
@@ -55,25 +74,25 @@ anyNA(data)
 
 For the automation, it will be easier if all the channels are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
 ```{r}
-dataPivot <- data %>% pivot_longer(cols = data_channel_is_lifestyle:data_channel_is_world, names_to = "channel",values_to = "Temp") 
+dataPivot <- data %>% pivot_longer(cols = c("Lifestyle", "Entertainment", "Business", "SocialMedia", "Technology", "World"), names_to = "channel",values_to = "Temp") 
 
 head(dataPivot)
 ```
 Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  The final data set has 33510 obs....**double check that you are not loosing too much data**  The original data set had 39644 obs, so we lost over 6000 observations... hmm.,, I'm fine with pivot, but not sure about removing missing information for day of the week.... again, come back.
 
 ```{r}
-newData <- dataPivot %>% filter(Temp != 0) %>% select(-Temp)
+newData <- dataPivot %>% filter(Temp != 0) %>% dplyr::select(-Temp)
 ```
 
 These are my notes, so it seems like I'm jumping around.  I will perform pivot on "weekday" information as well. Afterwards, remove Temp2 which represents articles without a day of the week listed.  
 
 ```{r}
-dataPivot1 <- newData %>% pivot_longer(cols = weekday_is_monday:weekday_is_sunday, names_to = "weekday",values_to = "Temp1") 
+dataPivot1 <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
 ```
 
 
 ```{r}
-newData <- dataPivot1 %>% filter(Temp1 != 0) %>% select(-Temp1)
+newData <- dataPivot1 %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
 ```
 
 
@@ -93,12 +112,12 @@ unique(newData$channel)
 
 ```{r}
 # just for completing the analysis; I don't think we will need format once everything is automated correctly.  
-lifestyle     <- newData %>% filter(channel == "data_channel_is_lifestyle")
-entertainment <- newData%>% filter(channel == "data_channel_is_entertainment")
-bus           <- newData%>% filter(channel == "data_channel_is_bus")
-socmed        <- newData%>% filter(channel == "data_channel_is_socmed")
-tech          <- newData%>% filter(channel == "data_channel_is_tech")
-world         <- newData%>% filter(channel == "data_channel_is_world")
+lifestyle     <- newData %>% filter(channel == "Lifestyle")
+entertainment <- newData%>% filter(channel == "Entertainment")
+bus           <- newData%>% filter(channel == "Business")
+socmed        <- newData%>% filter(channel == "SocailMedia")
+tech          <- newData%>% filter(channel == "Technology")
+world         <- newData%>% filter(channel == "World")
 ```
 
 
@@ -115,19 +134,15 @@ lifestyleTest <- lifestyle[-trainIndex, ]
 
 ## Summaries on Training Data
 ```{r}
-lifestyle %>% select(shares, starts_with("self"), starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
+lifestyle %>% dplyr::select(shares, starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
 ```
-Look at any others to see if their results should be included
+The distribution of several quantitative variables - shares, (response variable), rate_positive_words, rate_negative_words, avg_positive_polarity, and avg_negative_polarity.
 
-We see the distribution of several quantitative variable  
+We know the following about the distribution (shape):
 
-    **Right-skewed** if its mean is **greater** than its median.    
-    **Left-skewed** if its mean is **less** than its median.    
-    **Normal** if its mean **equals** to its median.    
-
-
-**Add contingency tables**
-**Must have 3 graphs each of the data**
+    **Right-skewed** if mean is **greater** than median.    
+    **Left-skewed** if mean is **less** than median.    
+    **Normal** if mean **equals** to median.    
 
 Share and positive words - hmmm, I expected something a bit more interesting....I figures there would be an uptick in articles shared.  Come back... JUst creating a bunch of plots to see what is interesting.
 ```{r}
@@ -146,6 +161,22 @@ shares and global_sentiment_polarity
 ```{r}
 ggplot(lifestyle, aes(x=num_videos, y = shares ))+geom_point()
 ```
+
+## Contingency Tables
+
+Articles per Channel vs Weekday
+```{r}
+table(newData$channel, newData$weekday)
+```
+
+Day of the Week vs Number of Keywords
+```{r}
+table(newData$weekday, newData$num_keywords)
+```
+
+
+## Correlations
+
 We want to remove any predictor variables that are highly correlated to the response variable as called multicollinearity.  if variables have this characteristic it can lead to skewed or misleading results. We will create grouping of ten predictor variables to look at the relationship with our response variable share.
 
 Looking at the results from the `ggcorr`, we do not see any highly correlated relationships.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.
@@ -176,12 +207,127 @@ ggcorr(lifestyleTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04, g
 ```{r}
 ggcorr(lifestyleTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity,  title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
 ```
+
+
 # Varaible Selection
-The final data set has 
+
+Before using any reduction algorithm to determine which variables to be in the model, I used the correlation tables above to reduce the predictors.  If the predictors are correlated, it's not necessary to similar predictor.
+
+So I decided to remove min and max, if the predictor also contained age:
+ min_positive_polarity
+ max_positive_polarity
+ min_negative_polarity
+ max_negative_polarity
+ self_reference_min_shares
+ self_reference_max_shares
+ kw_min_avg
+ kw_max_avg
+ kw_min_max
+ kw_max_max
+ kw_min_min
+ kw_max_min
+ 
+I removed all of the "LDA_".  When you view the correlation chart above, they seem to be correlated.  In addition, I am not sure what LDA means.  When I googled it, the results referenced modeling and Latent Dirichlet Allocation.
+LDA_00: Closeness to LDA topic 0
+LDA_01: Closeness to LDA topic 1
+LDA_02: Closeness to LDA topic 2
+LDA_03: Closeness to LDA topic 3
+LDA_04: Closeness to LDA topic 4
+
+I removed the following, because the data contains the absolute value of the same information:
+title_subjectivity
+title_sentiment_polarity
+
+I removed the following, because of their strong relationship between global_rate_positive_words and global_rate_negative_words:
+global_subjectivity
+global_sentiment_polarity
 
 
+I removed the following, because of their strong relationship between n_tokens_content:
+n_unique_tokens
+n_non_stop_unique_tokens
+n_non_stop_words
 
-# Linear Regerssion
+The final data set will contain the following columns (features):
+n_tokens_title
+n_tokens_content
+num_hrefs
+num_self_hrefs
+num_imgs
+num_videos
+average_token_length
+num_keywords
+kw_avg_min
+kw_avg_max
+kw_avg_avg
+self_reference_avg_sharess
+global_rate_positive_words
+global_rate_negative_words
+rate_positive_words
+rate_negative_words
+avg_positive_polarity
+avg_negative_polarity
+abs_title_subjectivity
+abs_title_sentiment_polarity
+
+So, that leaves us with 20. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis.
+
+
+```{r}
+model1 <- lifestyle %>% dplyr::select(shares, n_tokens_title,
+n_tokens_content,
+num_hrefs,
+num_self_hrefs,
+num_imgs,
+num_videos,
+average_token_length,
+num_keywords,
+kw_avg_min,
+kw_avg_max,
+kw_avg_avg,
+self_reference_avg_sharess,
+global_rate_positive_words,
+global_rate_negative_words,
+rate_positive_words,
+rate_negative_words,
+avg_positive_polarity,
+avg_negative_polarity,
+abs_title_subjectivity,
+abs_title_sentiment_polarity)
+```
+
+## Variable Selection
+
+Even though we have reduced the predictors in the model using correlation, I decided to complete Best Selection on the final group of variables.
+
+
+```{r}
+trainControl = trainControl(method = "cv", number = 10)
+
+bestFit <- train(shares ~ ., data = model1,
+method = 'leapSeq',
+preProcess = c("center", "scale"),
+tuneGrid  = data.frame(nvmax = 1:20),
+trControl = trainControl
+)
+
+bestFit$results
+```
+
+```{r}
+bestFit$bestTune
+
+```
+
+```{r}
+summary(bestFit$finalModel)
+```
+
+```{r}
+coef(bestFit$finalModel, 6)
+```
+
+# Linear Regression
 
 Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line"
 
@@ -190,6 +336,35 @@ For a Simple Linear Regression, we one response variable and one predictor varia
 For Multiple Linear Regression, we have one response variable and any number of predictor variable. It uses the formula Y = B0 + B1X1 + B2X2 + … + BpXp + E, where .....
 
 Also add the 4 assumptions - linear relationship, independence, homoscedasticity, and Normality.
+
+
+I will split the data again, since I have a final data set of 21
+
+```{r}
+set.seed(21)
+trainIndexSub <- createDataPartition(model1$shares, p = 0.7, list = FALSE)
+model1Train <- lifestyle[trainIndex, ]
+model1Test <- lifestyle[-trainIndex, ]
+```
+
+**Trying to figure out which variable is not a factor (each observation has the same value)**
+Error in `contrasts<-`(`*tmp*`, value = contr.funs[1 + isOF[nn]]) : 
+contrasts can be applied only to factors with 2 or more levels
+
+```{r}
+sapply(lapply(model1, unique), length)
+```
+```{r}
+#display unique values for each variable
+lapply(model1[c('num_self_hrefs', 'num_keywords', 'num_imgs')], unique)
+```
+
+
+```{r}
+regr1 <- regsubsets(shares ~., data = model1Train, nvmax=20)
+summary(regr1)
+
+```
 
 
 # Random Forest
