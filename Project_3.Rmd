@@ -418,4 +418,5 @@ Introduction Section
 Summary statistics each member to show contribution
 1- Linear Regression - each member 
 Boosted Tree Model (with CV)
+Model comparsions (automation done by 1st member)
 Any other support 
