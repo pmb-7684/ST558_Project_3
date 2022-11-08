@@ -1,12 +1,13 @@
 ---
-title: "Project 3 - Predicitive Models"
+title: "Project 3: Predictive Models on Online Popularity Data"
 author: "Smitali Paknaik and Paula Bailey"
 date: "2022-11-04"
 params:
-  socialID: "Lifestyle"
+   channel: "data_channel_is_lifestyle"
+
 ---
 
-# Beginning section
+## Intro
 
 Set up for knit process.  Set universal chunk code options, so it will not be necessary to update each chunk individually.[article](https://bookdown.org/yihui/rmarkdown-cookbook/chunk-options.html)
 ```{r setup, include=FALSE}
@@ -41,15 +42,15 @@ We used read.csv to load in the data.  The UCI site mentioned that `url` and `ti
 
 
 
-# Load Data, Rename Variables, and check for NAs
+## Load Data, Rename Variables, and check for NAs
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
-                              rename(`Lifestyle` =`data_channel_is_lifestyle`,
-                                    Entertainment = `data_channel_is_entertainment`,
-                                    Business      = `data_channel_is_bus`,
-                                    SocialMedia = `data_channel_is_socmed`,
-                                    Technology    = `data_channel_is_tech`,
-                                    World       = `data_channel_is_world`,
+                              rename(#`Lifestyle` =`data_channel_is_lifestyle`,
+                                    #Entertainment = `data_channel_is_entertainment`,
+                                    #Business      = `data_channel_is_bus`,
+                                    #SocialMedia = `data_channel_is_socmed`,
+                                    #Technology    = `data_channel_is_tech`,
+                                    #World       = `data_channel_is_world`,
                                     Monday      = `weekday_is_monday`,
                                     Tuesday     = `weekday_is_tuesday`,
                                     Wednesday   = `weekday_is_wednesday`,
@@ -64,26 +65,32 @@ anyNA(data)
 ```
 
 For the automation, it will be easier if all the channels are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
+
+Initially, I planned to rename the columns in the data set; however, it took me a while to figure it out, but the automation does not work when I renamed the columns.  I will review it again later.
+
 ```{r}
-dataPivot <- data %>% pivot_longer(cols = c("Lifestyle", "Entertainment", "Business", "SocialMedia", "Technology", "World"), names_to = "channel",values_to = "Temp") 
+dataPivot <- data %>% pivot_longer(cols = c("data_channel_is_lifestyle", "data_channel_is_entertainment", "data_channel_is_bus","data_channel_is_socmed","data_channel_is_tech", "data_channel_is_world"),names_to = "channel",values_to = "Temp") 
+
 ```
-Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  The final data set has 33510 obs....**double check that you are not loosing too much data**  The original data set had 39644 obs, so we lost over 6000 observations... hmm.,, I'm fine with pivot, but not sure about removing missing information for day of the week.... again, come back.
 
 ```{r}
 newData <- dataPivot %>% filter(Temp != 0) %>% dplyr::select(-Temp)
 ```
 
-These are my notes, so it seems like I'm jumping around.  I will perform pivot on "weekday" information as well. Afterwards, remove Temp2 which represents articles without a day of the week listed.  
+
+Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  The final data set has 33510 obs....**double check that you are not loosing too much data**  The original data set had 39644 obs, so we lost over 6000 observations... hmm.,, I'm fine with pivot, but not sure about removing missing information for day of the week.... again, come back.
+
 
 ```{r}
-dataPivot1 <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
+dataPivot1 <- dataPivot %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
 ```
 
+
+These are my notes, so it seems like I'm jumping around.  I will perform pivot on "weekday" information as well. Afterwards, remove Temp2 which represents articles without a day of the week listed.  
 
 ```{r}
 newData <- dataPivot1 %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
 ```
-
 
 
 ```{r}
@@ -91,31 +98,26 @@ unique(newData$channel)
 ```
 
 
+## Part of the automation
 ```{r}
-# just for completing the analysis; I don't think we will need format this once everything is automated correctly.  Need to create single variable maybe to loop through
-lifestyle     <- newData %>% filter(channel == "Lifestyle")
-entertainment <- newData%>% filter(channel == "Entertainment")
-bus           <- newData%>% filter(channel == "Business")
-socmed        <- newData%>% filter(channel == "SocailMedia")
-tech          <- newData%>% filter(channel == "Technology")
-world         <- newData%>% filter(channel == "World")
+selectChannel <- newData %>% filter(channel == params$channel)
 ```
 
 
-# Train and Test on practice - Lifestyle
+## Train and Test on practice automated
 ```{r}
 
 set.seed(21)
-trainIndex <- createDataPartition(lifestyle$shares, p = 0.7, list = FALSE)
-lifestyleTrain <- lifestyle[trainIndex, ]
-lifestyleTest <- lifestyle[-trainIndex, ]
+trainIndex <- createDataPartition(selectChannel$shares, p = 0.7, list = FALSE)
+selectTrain <- selectChannel[trainIndex, ]
+selectTest <- selectChannel[-trainIndex, ]
 
 ```
 
 
 ## Summaries on Training Data
 ```{r}
-lifestyle %>% dplyr::select(shares, starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
+selectTrain %>% dplyr::select(shares, starts_with("rate"), starts_with("avg") ) %>%summary()
 ```
 The distribution of several quantitative variables - shares, (response variable), rate_positive_words, rate_negative_words, avg_positive_polarity, and avg_negative_polarity.
 
@@ -129,7 +131,7 @@ Share and positive words - hmmm, I expected something a bit more interesting....
 
 ## Plot
 ```{r}
-ggplot(lifestyle, aes(x=rate_positive_words, y = shares ))+geom_point()
+ggplot(selectTrain, aes(x=rate_positive_words, y = shares ))+geom_point()
 ```
 
 
@@ -137,7 +139,7 @@ ggplot(lifestyle, aes(x=rate_positive_words, y = shares ))+geom_point()
 
 Articles per Channel vs Weekday
 ```{r}
-table(newData$channel, newData$weekday)
+table(selectTrain$channel, selectTrain$weekday)
 ```
 
 
@@ -150,10 +152,10 @@ Looking at the results from the `ggcorr`, we do not see any highly correlated re
 **need to make corr plot look better - see if can change font on label**
 
 ```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
+ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
 ```
 
-# Linear Regression
+## Linear Regression
 
 Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line"
 
@@ -164,30 +166,38 @@ For Multiple Linear Regression, we have one response variable and any number of 
 Also add the 4 assumptions - linear relationship, independence, homoscedasticity, and Normality.
 
 
+```{r}
+
+
+```
+
+## Random Forest
+
+Similar to bagged trees, but created using multiple trees and averages the final results.
+The random forest model is created using `rf` as the method and `mtry` for the tuning grid from 1 to 11.
+```{r}
+
+```
 
 
 Test area for params
 to automatic Rmarkdown, see topic 2 notes, beginning on page 329: rewatch video
 
-# Automation of Building Six Reports 
+## Automation of Building Six Reports 
 ```{r, eval = FALSE}
-#groups - need to consider a way to read in groups without hardcoding
-#socialID <- c("Lifestyle", "Entertainment","Business", "SocialMedia", "Tech", "World" )
-socialID <- unique(newData$channel)  # from notes this should work
+selectID <- unique(newData$channel)  
 
-#create filename
-output_file <- paste0(socialID, "Analysis.md")
-#create a group for each team with just the team name parameter
-params = lapply(socialID, FUN = function(x){list(socialID = x)})
+output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
 
-#put into a data frame
+params = lapply(selectID, FUN = function(x){list(channel = x)})
+
 reports <- tibble(output_file, params)
 
 library(rmarkdown)
 
 apply(reports, MARGIN = 1,
       FUN = function(x){
-        render(input = "./Project_3.Rmd",
+        render(input = "./TestOne.Rmd",
                output_format = "github_document", 
                output_file = x[[1]], 
                params = x[[2]])
@@ -199,13 +209,3 @@ apply(reports, MARGIN = 1,
 
 
 
-------------------------------------------------------------
-## Smitali 
-SOW
-
-Introduction Section 
-Summary statistics each member to show contribution
-1- Linear Regression - each member 
-Boosted Tree Model (with CV)
-Model comparsions (automation done by 1st member)
-Any other support 
