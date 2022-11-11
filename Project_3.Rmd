@@ -60,14 +60,14 @@ library(markdown)
 library(MASS)       #access to forward and backward selection algorithms
 library(purrr)
 library(tidyverse)  #tidyverse set of packages and functions
+library(randomForest)
 
 ```
 
 We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, I checked to validate the data set contained no missed values.  
 
 
-
-# Load Data, and check for NA
+# Load Data, Rename Variables and check for NAs 
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
                               rename(
@@ -136,9 +136,7 @@ summary(selectTrain)
 ```{r}
 selectTrain %>% dplyr::select(shares, starts_with("rate")) %>% summary()
 ```
-The distribution of several quantitative variables - shares, (response variable), rate_positive_words, and rate_negative_word.
-
-The summary provides us with information about the distribution (shape) of the variables.
+The summary provides us with information about the distribution (shape) of  shares, (response variable), rate_positive_words, and rate_negative_word.
 
     If mean is greater than median, then Right-skewed with outliers towards the right tail.    
     If mean is less than median, then Left-skewed with outliers towards the left tail.    
@@ -147,8 +145,10 @@ The summary provides us with information about the distribution (shape) of the v
 
 ## Plots of the Training Data
 
+Note:  Due to the extreme minimize and maximize values in our response variable, shares, we transformed the data by applying Log(). The results were much better
+
 ```{r scatter share}
-g <- ggplot(selectTrain, aes(x=rate_positive_words, y = shares ))+geom_point() 
+g <- ggplot(selectTrain, aes(x=rate_positive_words, y = log(shares)))+geom_point() 
 g + geom_jitter(aes(color = as.factor(weekday))) + 
 	      labs(x = "y", 
 	           title = "Rate of Positive Words")
@@ -159,7 +159,7 @@ If we see a negative trend then articles with more positive words tend to be sha
 
 
 ```{r histogram shares}
-g <- ggplot(selectTrain, aes(x = shares))
+g <- ggplot(selectTrain, aes(x = log(shares)))
 g + geom_histogram(bins = sqrt(nrow(selectTrain)))  + 
 	      labs(title = "Histogram of Shares")
 ```
@@ -168,7 +168,7 @@ We can inspect the shape of the response variable, shares. If the share of the h
 ```{r boxplot shares}
 
 g <- ggplot(selectTrain) 
- g + aes(x = weekday, y = shares) +
+ g + aes(x = weekday, y = log(shares)) +
   geom_boxplot(varwidth = TRUE) + 
   geom_jitter(alpha = 0.25, width = 0.2,aes(color = as.factor(weekday)))  + 
 	 labs(title = "Box Plot of Shares Per Day")
@@ -320,7 +320,6 @@ abs_title_sentiment_polarity)
 ## Variable Selection
 ###  Best Selection using regsubsets()
 
-
 ```{r}
 regr1 <- regsubsets(shares ~., data = selectTrain %>% dplyr::select(shares, 
 n_tokens_title,
@@ -402,6 +401,27 @@ For the results of a linear regression model to be valid and reliable, the follo
     4. *Normality*: The residuals of the model are normally distributed.
 
 
+
+
+The finalGroup contains the variables we can use for making the prediction on share, response variable.
+```{r include=FALSE}
+finalGrp <- selectChannel %>% dplyr::select(shares, num_hrefs,num_self_hrefs, num_imgs, num_videos,
+    average_token_length, num_keywords, kw_avg_min, kw_avg_avg, self_reference_avg_sharess,
+    global_rate_negative_words, rate_positive_words, avg_negative_polarity, abs_title_subjectivity,  
+    abs_title_sentiment_polarity, is_weekend)
+```
+
+Again, we create a new training and testing set using finalGroup.
+```{r}
+
+set.seed(21)
+trainIndex <- createDataPartition(finalGrp$shares, p = 0.7, list = FALSE)
+selectTrain_F <- finalGrp[trainIndex, ]
+selectTest_F <- finalGrp[-trainIndex, ]
+
+```
+
+
 I hope to have the remaining code completed by tomorrow.  I've been having problems with the run-time..
 So, I'm working on parallel computing.
 
@@ -412,7 +432,13 @@ Random forest is a decision tree method. It takes a desired number of bootstrapp
 
 The random forest model is created using `rf` as the method and `mtry` for the tuning grid.
 
-Due to the computational memory need to create a random forest, we will be using random forest created from the ranger library.  Otherwise, we will ....
+Due to the computational memory needed to create a random forest, we will be using random forest created from the ranger library.  Otherwise, we will ....
+
+```{r}
+rfFit <- randomForest(shares ~. , data = selectTrain, importance = TRUE)
+rfFit
+```
+
 
 
 
