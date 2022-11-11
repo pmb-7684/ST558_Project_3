@@ -14,17 +14,40 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 ```
 
 # Introduction section
+## Introduction 
 
+The main goal of this page is to analyze OnlineNewsPopularity data using Exploratory Data Analysis and apply regression and ensemble methods to predict the response variable ~share using a set of predictor variables optimized using set of variable selection methods. 
 
+At first step the data is to shape the data to get the various data_channel_groups together. This is needed in order to get proper filtering of the required channels in the automation script. The EDA is performed on each group using graphs, tables and heatmaps. 
+ 
+The next step includes creating train and test data for train fit and test prediction. The next steps includes variable selection /pre-processing of data (if needed) and running 2 regression models, Linear models are the first step of performing model fit and predictions. The data may be easily explained by a set of linear equations and may not require complex algorithms that can consume time, cost and may require computation speed. Hence, regression models often are a great start to run predictions.
+ 
+The Other methods evaluated here are Random Forest and Boosted Tree method. Both are types of ensemble methods that use tree based model to evaluate future values. These methods do not have any specified methodology in model fit. They work on the best statistic obtained while constructing the model fit. Theoretically ensemble methods are said to have a good prediction, and using this data it will be evaluated on what categories how these models perform.
 
+In the end for each channel category, all the 4 models are compared and best model that suits this category of channel is noted.  
+
+#### About Data and Data Preparation
+OnlineNewsPopularity data has following useful variables:
+_from models we do for eda and regression/ensemble
+
+The channel categories evaluated are : 'lifestyle','entertainment','bus','socmed','tech' and 'world'.
+
+The csv file is imported read using `read_csv`. As we have automated the analysis, we need each channel to be fed into the R code we have and get the analysis and predictions as a different file. The channel categories seem to be in column formats so they have been converted into long form using `pivot_longer`. 
+The required category is then easily filter by passing the channel variables into the filter code.
+
+Irrelevant columns removed - Note after all the work and cleaning
+The Exploratory analysis and Modelling was carried on the remaining set of select variables. 
+ 
+ 
+## Package Imports 
 
   * The following packages are required for creating predictive models.
 
 1. `dplyr` - A part of the `tidyverse` used for manipulating data
 2. `tidyr` - A part of the `tidyverse` used for data cleaning
-3. `ggplot2` - A part of the `tidyverse` used for creating graphics
-4. 
-
+3. `ggplot2`- A part of the `tidyverse` used for creating graphics
+4  `caret` - To run the Regression and ensemble methods with Train/Split and cross validation.
+5.  `knitr`: To get nice table printing formats, mainly for the contingency tables.
 
 ```{r lib, include = FALSE}
 
