@@ -3,7 +3,7 @@ title: "Project 3 - Predicitive Models"
 author: "Smitali Paknaik and Paula Bailey"
 date: "2022-11-04"
 params:
-  socialID: "Lifestyle"
+   channel: "data_channel_is_lifestyle"
 ---
 
 
@@ -70,12 +70,7 @@ We used read.csv to load in the data.  The UCI site mentioned that `url` and `ti
 # Load Data, and check for NA
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
-                              rename(`Lifestyle` =`data_channel_is_lifestyle`,
-                                    Entertainment = `data_channel_is_entertainment`,
-                                    Business      = `data_channel_is_bus`,
-                                    SocialMedia = `data_channel_is_socmed`,
-                                    Technology    = `data_channel_is_tech`,
-                                    World       = `data_channel_is_world`,
+                              rename(
                                     Monday      = `weekday_is_monday`,
                                     Tuesday     = `weekday_is_tuesday`,
                                     Wednesday   = `weekday_is_wednesday`,
@@ -89,136 +84,151 @@ data <- read.csv("OnlineNewsPopularity.csv") %>%
 anyNA(data)  
 ```
 
-For the automation, it will be easier if all the channels are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
-```{r}
-dataPivot <- data %>% pivot_longer(cols = c("Lifestyle", "Entertainment", "Business", "SocialMedia", "Technology", "World"), names_to = "channel",values_to = "Temp") 
-```
-Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  The final data set has 33510 obs....**double check that you are not loosing too much data**  The original data set had 39644 obs, so we lost over 6000 observations... hmm.,, I'm fine with pivot, but not sure about removing missing information for day of the week.... again, come back.
+We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, checked to validate the data set contained no missed values.  anyNA(data) returned FALSE, so the file has no missing data.
 
+
+For the automation, it will be easier if all the channels (ie data_channel_is_*) are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
 ```{r}
+dataPivot <- data %>% pivot_longer(cols = c("data_channel_is_lifestyle", "data_channel_is_entertainment", "data_channel_is_bus","data_channel_is_socmed","data_channel_is_tech", "data_channel_is_world"),names_to = "channel",values_to = "Temp") 
+
+
 newData <- dataPivot %>% filter(Temp != 0) %>% dplyr::select(-Temp)
 ```
 
-These are my notes, so it seems like I'm jumping around.  I will perform pivot on "weekday" information as well. Afterwards, remove Temp2 which represents articles without a day of the week listed.  
+Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  Next, we will perform the same pivot_longer() process on the days of the week
 
 ```{r}
-dataPivot1 <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
+dataPivot <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
+
+newData <- dataPivot %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
+```
+
+# Create Train and Test Sets
+
+Part of the automation when we run the `Render_Code.R`, it selects each channel individually to complete the analysis.
+```{r}
+selectChannel <- newData %>% filter(channel == params$channel)
 ```
 
 
-```{r}
-newData <- dataPivot1 %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
-```
-
-
-```{r}
-head(newData)
-```
-
-```{r}
-unique(newData$channel)
-```
-
-
-```{r}
-# just for completing the analysis; I don't think we will need format once everything is automated correctly.  
-lifestyle     <- newData %>% filter(channel == "Lifestyle")
-entertainment <- newData%>% filter(channel == "Entertainment")
-bus           <- newData%>% filter(channel == "Business")
-socmed        <- newData%>% filter(channel == "SocailMedia")
-tech          <- newData%>% filter(channel == "Technology")
-world         <- newData%>% filter(channel == "World")
-```
-
-
-# Train and Test on practice - Lifestyle
+To make the data reproducible, we used set seed to 21 and created the training and testing set with a 70% split.
 ```{r}
 
 set.seed(21)
-trainIndex <- createDataPartition(lifestyle$shares, p = 0.7, list = FALSE)
-lifestyleTrain <- lifestyle[trainIndex, ]
-lifestyleTest <- lifestyle[-trainIndex, ]
+trainIndex <- createDataPartition(selectChannel$shares, p = 0.7, list = FALSE)
+selectTrain <- selectChannel[trainIndex, ]
+selectTest <- selectChannel[-trainIndex, ]
 
 ```
 
-
-## Summaries on Training Data
+# Exploratory Data Analysis
+## Summary on Training Data
 
 ```{r}
-str(newData)
+str(selectTrain)
 ```
+Viewing the structure of the data, the data types seem to be fine.
 
-```{r}
-lifestyle %>% dplyr::select(shares, starts_with("rate"), starts_with("avg") ) %>%summary(lifestyle)
-```
-The distribution of several quantitative variables - shares, (response variable), rate_positive_words, rate_negative_words, avg_positive_polarity, and avg_negative_polarity.
-
-We know the following about the distribution (shape):
-
-    Right-skewed if mean is greater than median.    
-    Left-skewed if mean is less than median.    
-    Normal if mean equals to median.    
-
-Share and positive words - hmmm, I expected something a bit more interesting....I figures there would be an uptick in articles shared.  Come back... JUst creating a bunch of plots to see what is interesting.
-```{r}
-ggplot(lifestyle, aes(x=rate_positive_words, y = shares ))+geom_point()
+```{r include=FALSE}
+summary(selectTrain)
 ```
 
 ```{r}
-ggplot(lifestyle, aes(x = shares ))+geom_boxplot(position = "dodge")
+selectTrain %>% dplyr::select(shares, starts_with("rate")) %>% summary()
 ```
+The distribution of several quantitative variables - shares, (response variable), rate_positive_words, and rate_negative_word.
 
-Share histogram
-```{r}
-ggplot(lifestyle, aes(x = shares ))+geom_histogram()
+The summary provides us with information about the distribution (shape) of the variables.
+
+    If mean is greater than median, then Right-skewed with outliers towards the right tail.    
+    If mean is less than median, then Left-skewed with outliers towards the left tail.    
+    If mean equals to median, then Normal distribtuion.    
+
+
+## Plots of the Training Data
+
+```{r scatter share}
+g <- ggplot(selectTrain, aes(x=rate_positive_words, y = shares ))+geom_point() 
+g + geom_jitter(aes(color = as.factor(weekday))) + 
+	      labs(x = "y", 
+	           title = "Rate of Positive Words")
 ```
+We can inspect the trend of shares as a function of the positive word rate. If the points
+show an upward trend, then articles with more positive words tend to be shared more often.
+If we see a negative trend then articles with more positive words tend to be shared less often.
+
+
+```{r histogram shares}
+g <- ggplot(selectTrain, aes(x = shares))
+g + geom_histogram(bins = sqrt(nrow(selectTrain)))  + 
+	      labs(title = "Histogram of Shares")
+```
+We can inspect the shape of the response variable, shares. If the share of the histogram is symmetrical, then shares has a normal distribution with the shares evenly spread throughout. If the shape is left skewed, then the tail which contains a most of the outliers will be extended to the left.  If the shape is right skewed, then the tail which contains a most of the outliers will be extended to the right.
+
+```{r boxplot shares}
+
+g <- ggplot(selectTrain) 
+ g + aes(x = weekday, y = shares) +
+  geom_boxplot(varwidth = TRUE) + 
+  geom_jitter(alpha = 0.25, width = 0.2,aes(color = as.factor(weekday)))  + 
+	 labs(title = "Box Plot of Shares Per Day")
+```
+We can inspect the distribution of shares as a function of the day of the week. If the points
+are within the body of the box, then articles shared are within the 1st and 3rd quartile.
+If we see a articles outside of the whiskers of the boxplot, it represents outliers in the data.
+
 
 ## Contingency Tables
 
 Articles per Channel vs Weekday
 ```{r}
-table(newData$channel, newData$weekday)
+table(selectTrain$channel, selectTrain$weekday)
 ```
+We can inspect the distribution of shares as a function of the day of the week. 
 
 Day of the Week vs Number of Keywords
 ```{r}
-table(newData$weekday, newData$num_keywords)
+table(selectTrain$weekday, selectTrain$num_keywords)
 ```
+We can inspect the distribution of number of keywords as a function of the day of the week. Across the top are the unique number of keywords in the channel.  Share are divided by number of keywords and the day the article is shared.
 
 
 ## Correlations
 
-We want to remove any predictor variables that are highly correlated to the response variable as called multicollinearity.  if variables have this characteristic it can lead to skewed or misleading results. We will create grouping of ten predictor variables to look at the relationship with our response variable share.
+We want to remove any predictor variables that are highly correlated to the response variable which can cause multicollinearity.  If variables have this characteristic it can lead to skewed or misleading results. We can create groupings of  predictor variables to look at the relationship with our response variable, share and to each other.
 
-Looking at the results from the `ggcorr`, we do not see any highly correlated relationships.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.
+```{r}
+ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "TRUE", label_size=3)
+```
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2)
+```
+
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "TRUE")
+```
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "TRUE")
+```
+
+
+```{r}
+ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
+```
+Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the varaibles are highly correlated with one another.
 
 **need to make corr plot look better - see if can change font on label**
-
-
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens, num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label = "TRUE", label_size=3)
-```
-
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select( average_token_length, num_keywords, shares),label_round = 2)
-```
-
-
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
-```
-
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, shares),label_round = 2, label = "TRUE")
-```
-
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "TRUE")
-```
-```{r}
-ggcorr(lifestyleTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity,  title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
-```
-
 
 # Varaible Selection
 
@@ -285,7 +295,7 @@ So, that leaves us with 20. There is a relationship between num_hrefs and num_se
 
 
 ```{r}
-model1 <- lifestyle %>% dplyr::select(shares, n_tokens_title,
+model1 <- selectChannel %>% dplyr::select(shares, n_tokens_title,
 n_tokens_content,
 num_hrefs,
 num_self_hrefs,
@@ -310,18 +320,10 @@ abs_title_sentiment_polarity)
 ## Variable Selection
 ###  Best Selection using regsubsets()
 
-I will split the data again, since I have a final data set of 21
 
 ```{r}
-set.seed(21)
-trainIndexSub <- createDataPartition(model1$shares, p = 0.7, list = FALSE)
-model1Train <- lifestyle[trainIndex, ]
-model1Test <- lifestyle[-trainIndex, ]
-```
-
-
-```{r}
-regr1 <- regsubsets(shares ~., data = model1Train %>% dplyr::select(shares, n_tokens_title,
+regr1 <- regsubsets(shares ~., data = selectTrain %>% dplyr::select(shares, 
+n_tokens_title,
 n_tokens_content,
 num_hrefs,
 num_self_hrefs,
@@ -340,11 +342,10 @@ rate_negative_words,
 avg_positive_polarity,
 avg_negative_polarity,
 abs_title_subjectivity,
-abs_title_sentiment_polarity), nvmax=20)
-
-summary(regr1)
-
+abs_title_sentiment_polarity,
+weekday), nvmax=20)
 ```
+
 
 add article to cite usage of code
 ```{r}
@@ -355,13 +356,12 @@ data.frame(
   BIC = which.min(res.sum$bic)
 )
 ```
+
 ```{r}
 get_model_formula <- function(id, object, outcome){
   # get models data
   models <- summary(object)$which[id,-1]
-  # Get outcome variable
-  #form <- as.formula(object$call[[2]])
-  #outcome <- all.vars(form)[1]
+
   # Get model predictors
   predictors <- names(which(models == TRUE))
   predictors <- paste(predictors, collapse = "+")
@@ -370,9 +370,6 @@ get_model_formula <- function(id, object, outcome){
 }
 ```
 
-```{r}
-get_model_formula(11, regr1, "shares")
-```
 
 ```{r}
 bestModel <- get_model_formula(which.max(res.sum$adjr2),regr1,"shares")
@@ -382,45 +379,62 @@ bestModel
 
 # Linear Regression
 
-Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line"
+Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line".
 
-For a Simple Linear Regression, we one response variable and one predictor variables. It uses the formula y = b0 + b1x, where....
+For a Simple Linear Regression, we have one response variable and one predictor variables. It uses the formula y = b0 + b1x, where
 
-For Multiple Linear Regression, we have one response variable and any number of predictor variable. It uses the formula Y = B0 + B1X1 + B2X2 + … + BpXp + E, where .....
+    y:  response variable
+    b0: intercept (baseline value, if all other values are zero)
+    b1: 
 
-Also add the 4 assumptions - linear relationship, independence, homoscedasticity, and Normality.
+For Multiple Linear Regression, we have one response variable and any number of predictor variables. It uses the formula Y = B0 + B1X1 + B2X2 + … + BpXp + E, where
+
+    Y: The response variable
+    Xp: The pth predictor variable
+    Bp: The average effect on Y of a one unit increase in Xp, holding all other predictors fixed
+    E: The error term
+
+For the results of a linear regression model to be valid and reliable, the following must be true
+
+    1. *Linear relationship*: There exists a linear relationship between the independent variable, x, and the dependent variable, y. 
+    2. *Independence*: The residuals are independent. 
+    3. *Homoscedasticity*: The residuals have constant variance at every level of x.
+    4. *Normality*: The residuals of the model are normally distributed.
 
 
+I hope to have the remaining code completed by tomorrow.  I've been having problems with the run-time..
+So, I'm working on parallel computing.
 
 
 # Random Forest
-Paula - Create RF
+
+Random forest is a decision tree method. It takes a desired number of bootstrapped samples from the data and builds a tree for each sample. While building the trees, if a split occurs, then only a random sample of trees are averaged.  The average of predictions are used to determine the final model
+
+The random forest model is created using `rf` as the method and `mtry` for the tuning grid.
+
+Due to the computational memory need to create a random forest, we will be using random forest created from the ranger library.  Otherwise, we will ....
 
 
 
 
-Test area for params
-to automatic Rmarkdown, see topic 2 notes, beginning on page 329: rewatch video
 
-# Automation of Data 
+
+
+# Automation of Building Six Reports 
 ```{r, eval = FALSE}
-#groups - need to consider a way to read in groups without hardcoding
-#socialID <- c("Lifestyle", "Entertainment","Business", "SocialMedia", "Tech", "World" )
-socialID <- unique(newData$channel)  # from notes topic 2 p335 - this should work; just need to                                                incorporate into render file
+selectID <- unique(newData$channel)  
 
-#create filename
-output_file <- paste0(socialID, "Analysis.md")
-#create a group for each team with just the team name parameter
-params = lapply(socialID, FUN = function(x){list(socialID = x)})
+output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
 
-#put into a data frame
+params = lapply(selectID, FUN = function(x){list(channel = x)})
+
 reports <- tibble(output_file, params)
 
 library(rmarkdown)
 
 apply(reports, MARGIN = 1,
       FUN = function(x){
-        render(input = "./Project_3.Rmd",
+        render(input = "./TestOne.Rmd",
                output_format = "github_document", 
                output_file = x[[1]], 
                params = x[[2]])
@@ -429,7 +443,6 @@ apply(reports, MARGIN = 1,
 
 
 ```
-
 
 ------------------------------------------------------------
 ## Smitali 

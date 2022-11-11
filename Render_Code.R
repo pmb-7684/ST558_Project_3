@@ -1,4 +1,4 @@
-selectID <- unique(newData$channel)  # from notes this should work
+selectID <- unique(newData$channel)  
 
 #create filename
 output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
@@ -12,7 +12,7 @@ library(rmarkdown)
 
 apply(reports, MARGIN = 1,
       FUN = function(x){
-        render(input = "./TestOne.Rmd",
+        render(input = "./Project_3.Rmd",
                output_format = "github_document", 
                output_file = x[[1]], 
                params = x[[2]])
