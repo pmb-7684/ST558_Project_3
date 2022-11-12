@@ -61,6 +61,7 @@ library(MASS)       #access to forward and backward selection algorithms
 library(purrr)
 library(tidyverse)  #tidyverse set of packages and functions
 library(randomForest)
+library(gridExtra)
 
 ```
 
@@ -229,6 +230,104 @@ ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarit
 Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the varaibles are highly correlated with one another.
 
 **need to make corr plot look better - see if can change font on label**
+## More EDA.
+
+The above observations have been simplified further by categorizing the response variable shares into 'Poor'and 'Good'. This gives information, how data is split between the quantiles of the training data. For ``params$channel`` , the shares below Q2 are grouped Poor and above Q2 as Good 
+The summary statistics can be seen for each category easily and deciphered at more easily here.
+
+```{r, fig.height=10, fig.width=15}
+
+q<-quantile(selectTrain$shares,0.5)
+cat_share<-selectTrain%>% 
+  mutate(Rating=ifelse(shares<q,"Poor","Good"))
+
+head(cat_share,5)
+```
+
+#### Summary Statistics.
+
+The most basic statistic is assessed here, which is mean across the 2 categories. Not all variables can be informative but the effect of each parameter on the Rating can be seen here. This depicts how each parameter on average has contributed to the shares for each category.
+
+```{r}
+
+#pack<-c('gt','tab_header')
+#new <- pack[!(pack %in% installed.packages()[,"Package"])]
+#if(length(new)) install.packages(new)
+library(gt)
+
+cat_share$Rating=as.factor(cat_share$Rating)
+
+means<-aggregate(cat_share,by=list(cat_share$Rating),mean)
+means
+
+
+  ##cat_share <- prcomp(iris[,c(1:4)],
+ ##                  center = TRUE,
+ ##                  scale. = TRUE)
+
+
+```
+
+And scatter plots are generated to get an idea on the direction of the predictor variables and to see what is the direction and extent of linearity or non-linearity of the predictors.
+```{r, fig.height=10, fig.width=17}
+
+
+q<-quantile(cat_share$shares,c(0.25,0.75))
+
+name<-names(cat_share)
+predictors1<-(name)[30:35]
+predictors2<-(name) [36:41]
+predictors3<-(name) [42:46]
+response <- "Rating"
+
+par(mfrow = c(3, 1))
+
+cat_share %>% 
+  select(c(response, predictors1)) %>% 
+    select_if(~ !any(is.na(.))) %>%   
+      ggpairs(aes(colour = Rating,alpha=0.5),
+              upper = list(continuous = wrap("cor", title="")))
+
+cat_share %>% 
+  select(c(response, predictors2)) %>% 
+    select_if(~ !any(is.na(.))) %>%   
+      ggpairs(aes(colour = Rating,alpha=0.5),
+              upper = list(continuous = wrap("cor", title="")))
+
+cat_share %>% 
+  select(c(response, predictors3)) %>% 
+    select_if(~ !any(is.na(.))) %>%   
+      ggpairs(aes(colour = Rating,alpha=0.5),
+              upper = list(continuous = wrap("cor", title="")))
+
+```
+
+In order to get good idea of characteristic of content affecting the number of shares we used `pivot_longer`shape our data and bring count of number of videos , pictures etc., for a simple and quick analysis. 
+
+
+```{r, fig.height=5, fig.width=15}
+library(gridExtra)
+
+bar_dat<-cat_share %>% select(c('n_tokens_title','n_tokens_content','shares','num_self_hrefs','num_imgs','num_videos','num_keywords','Rating'))
+
+par(mfrow=c(1,5))
+g1<-ggplot(bar_dat,aes())+
+  geom_bar(aes(x = n_tokens_title, y = shares, fill = Rating),stat = 'identity', position = "dodge")
+g2<-ggplot(bar_dat,aes())+
+  geom_bar(aes(x = num_self_hrefs, y = shares, fill = Rating),stat = 'identity', position = "dodge")
+g3<-ggplot(bar_dat,aes())+
+  geom_bar(aes(x = num_imgs, y = shares, fill = Rating),stat = 'identity', position = "dodge")
+g4<-ggplot(bar_dat,aes())+
+  geom_bar(aes(x = num_videos, y = shares, fill = Rating),stat = 'identity', position = "dodge")
+g5<-ggplot(bar_dat,aes())+
+  geom_bar(aes(x = num_keywords, y = shares, fill = Rating),stat = 'identity', position = "dodge")
+
+grid.arrange(g1, g2, g3,g4,g5 , 
+             ncol = 3, nrow = 2)
+
+```
+
+
 
 # Varaible Selection
 
@@ -427,6 +526,10 @@ For the results of a linear regression model to be valid and reliable, the follo
 I hope to have the remaining code completed by tomorrow.  I've been having problems with the run-time..
 So, I'm working on parallel computing.
 
+## Linear Regression with PCA.
+
+The aim here is to test if PCA helps us reduce the dimensions of our data and utilize this on our regression model. The PCA is very efficient method of feature extraction and can help get maximum information at minimum cost. We will check out a multinomial logistic regression with PCA here.
+
 
 # Random Forest
 
@@ -447,7 +550,7 @@ tuneGrid  = data.frame(mtry = 1:10)
 rfFit
 ```
 
-
+# ** Boosted Trees
 
 
 
