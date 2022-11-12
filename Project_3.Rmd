@@ -309,7 +309,6 @@ In order to get good idea of characteristic of content affecting the number of s
 
 bar_dat<-cat_share %>% select(c('n_tokens_title','n_tokens_content','shares','num_self_hrefs','num_imgs','num_videos','num_keywords','Rating'))
 
-par(mfrow=c(1,5))
 g1<-ggplot(bar_dat,aes())+
   geom_bar(aes(x = n_tokens_title, y = shares, fill = Rating),stat = 'identity', position = "dodge")
 g2<-ggplot(bar_dat,aes())+
