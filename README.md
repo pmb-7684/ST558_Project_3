@@ -67,7 +67,7 @@ The data contains the following variables:
 59. abs_title_sentiment_polarity: Absolute polarity level
 60. shares: Number of shares (target)
 
-In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model and boosted tree model were constructed using 5-fold cross-validation. These models were constructed on training data set and than tested on test data set. The best model was selected based on lowest RMSE.
+In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model and boosted tree model were constructed. These models were constructed on training data set and than tested on test data set. The best model was selected based on lowest RMSE.
 
 List of packages used:
 
@@ -86,7 +86,7 @@ Code used to create the analyses.
 ```
 selectID <- unique(newData$channel)  
 
-output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
+output_file <- paste0(selectID, "Analysis.md")  
 
 params = lapply(selectID, FUN = function(x){list(channel = x)})
 
