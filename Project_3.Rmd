@@ -198,7 +198,7 @@ We can inspect the distribution of number of keywords as a function of the day o
 
 We want to remove any predictor variables that are highly correlated to the response variable which can cause multicollinearity.  If variables have this characteristic it can lead to skewed or misleading results. We can create groupings of  predictor variables to look at the relationship with our response variable, share and to each other.
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "TRUE", label_size=3)
 ```
 
@@ -207,24 +207,24 @@ ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_href
 ```
 
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
 ```
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "TRUE")
 ```
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "TRUE")
 ```
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "TRUE")
 ```
 
 
-```{r}
+```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
 ```
 Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the varaibles are highly correlated with one another.
@@ -377,7 +377,7 @@ print(paste("Number of Principal Components optimized are",count ,"for cumuative
 
 ```
 
-# Varaible Selection
+# Variable Selection
 
 Before using any reduction algorithm to determine which variables to be in the model, I used the correlation tables above to reduce the predictors.  If the predictors are correlated, it's not necessary to similar predictor.
 
@@ -440,111 +440,6 @@ abs_title_sentiment_polarity
 
 So, that leaves us with 20. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis.
 
-
-```{r}
-model1 <- selectChannel %>% dplyr::select(shares, n_tokens_title,
-n_tokens_content,
-num_hrefs,
-num_self_hrefs,
-num_imgs,
-num_videos,
-average_token_length,
-num_keywords,
-kw_avg_min,
-kw_avg_max,
-kw_avg_avg,
-self_reference_avg_sharess,
-global_rate_positive_words,
-global_rate_negative_words,
-rate_positive_words,
-rate_negative_words,
-avg_positive_polarity,
-avg_negative_polarity,
-abs_title_subjectivity,
-abs_title_sentiment_polarity)
-```
-
-###  Best Selection using regsubsets()
-
-```{r}
-regr1 <- regsubsets(shares ~., data = selectTrain %>% dplyr::select(shares, 
-n_tokens_title,
-n_tokens_content,
-num_hrefs,
-num_self_hrefs,
-num_imgs,
-num_videos,
-average_token_length,
-num_keywords,
-kw_avg_min,
-kw_avg_max,
-kw_avg_avg,
-self_reference_avg_sharess,
-global_rate_positive_words,
-global_rate_negative_words,
-rate_positive_words,
-rate_negative_words,
-avg_positive_polarity,
-avg_negative_polarity,
-abs_title_subjectivity,
-abs_title_sentiment_polarity,
-weekday), nvmax=20)
-```
-
-
-add article to cite usage of code
-```{r}
-res.sum <- summary(regr1)
-data.frame(
-  Adj.R2 = which.max(res.sum$adjr2),
-  CP = which.min(res.sum$cp),
-  BIC = which.min(res.sum$bic)
-)
-```
-
-```{r}
-get_model_formula <- function(id, object, outcome){
-  # get models data
-  models <- summary(object)$which[id,-1]
-
-  # Get model predictors
-  predictors <- names(which(models == TRUE))
-  predictors <- paste(predictors, collapse = "+")
-  # Build model formula
-  as.formula(paste0(outcome, "~", predictors))
-}
-```
-
-
-```{r}
-bestModel <- get_model_formula(which.max(res.sum$adjr2),regr1,"shares")
-bestModel
-```
-
-Also ran Best Stepwise.  Using the bestModel above, the results were poor.  It received adjust R-squared less than 5%.  Since above was mainly from looking at correlation results, I was curious if I would receive different results.
-
-###  Best Selection using Best stepwise
-
-```{r}
-set.seed(21)
-
-fit1<- train(shares ~ ., data = selectTrain%>% dplyr::select(-channel),
-method = 'leapSeq',
-preProcess = c("center", "scale"),
-tuneGrid  = data.frame(nvmax = 1:30),
-trControl = trainControl(method = "cv", number = 5)
-)
-
-fit1$results
-```
-```{r}
-fit1$bestTune
-```
-
-```{r}
-#coef(fit1$finalModel, 10)
-```
-
 # Linear Regression
 
 Linear regression is a method to understand the relationship between a response variables Y and one or more predictor variables x, x1, x2, etc.  This method creates a line that best fits the data called "least known regression line".
@@ -574,6 +469,50 @@ For the results of a linear regression model to be valid and reliable, the follo
 I hope to have the remaining code completed by tomorrow.  I've been having problems with the run-time..
 So, I'm working on parallel computing.
 
+## Multiple Linear Regression using Best Stepwise
+```{r}
+set.seed(21)
+
+lmFit1<- train(shares ~ ., data = selectTrain%>% dplyr::select(shares, n_tokens_title,
+n_tokens_content,
+num_hrefs,
+num_self_hrefs,
+num_imgs,
+num_videos,
+average_token_length,
+num_keywords,
+kw_avg_min,
+kw_avg_max,
+kw_avg_avg,
+self_reference_avg_sharess,
+global_rate_positive_words,
+global_rate_negative_words,
+rate_positive_words,
+rate_negative_words,
+avg_positive_polarity,
+avg_negative_polarity,
+abs_title_subjectivity,
+abs_title_sentiment_polarity),
+method = 'leapSeq',
+preProcess = c("center", "scale"),
+tuneGrid  = data.frame(nvmax = 1:20),
+trControl = trainControl(method = "cv", number = 5)
+)
+
+lmFit1$results
+```
+
+
+```{r}
+lmFit1$bestTune
+```
+
+```{r}
+coef(lmFit1$finalModel, 5)
+```
+
+
+
 
 # Random Forest
 
@@ -581,17 +520,17 @@ Random forest is a decision tree method. It takes a desired number of bootstrapp
 
 The random forest model is created using `rf` as the method and `mtry` for the tuning grid.
 
-**Need to finish discussion**
+
 
 ```{r}
-rfFit <- train(shares ~. , data = selectTrain %>% dplyr::select(shares, n_non_stop_unique_tokens, kw_avg_max, self_reference_min_shares, n_tokens_content, num_hrefs,kw_max_avg, weekday,n_non_stop_words, num_videos, kw_avg_avg),
+rfFit1 <- train(shares ~. , data = selectTrain %>% dplyr::select(shares, n_non_stop_unique_tokens, kw_avg_max, self_reference_min_shares, n_tokens_content, num_hrefs,kw_max_avg, weekday,n_non_stop_words, num_videos, kw_avg_avg),
 method = 'rf',
 trControl = trainControl(method = 'cv', number = 3),
 preProcess = c("center", "scale"),
 tuneGrid  = data.frame(mtry = 1:10)    
 )
 
-rfFit
+rfFit1
 ```
 
 ## Linear Regression with PCA.
