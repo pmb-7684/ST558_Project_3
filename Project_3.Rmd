@@ -7,13 +7,14 @@ params:
 ---
 
 
-Set up for knit process.  Set universal chunk code options, so it will not be necessary to update each chunk individually.
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, fig.align='center')
 
+```{r setup, include=FALSE}
+# Set up for knit process.  Set universal chunk code options, so it will not be necessary to update each chunk individually.
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, fig.align='center')
 ```
 
-# Introduction section
+# Background / Introduction
 ## Introduction 
 
 The main goal of this page is to analyze OnlineNewsPopularity data using Exploratory Data Analysis and apply regression and ensemble methods to predict the response variable ~share using a set of predictor variables optimized using set of variable selection methods. 
@@ -68,7 +69,7 @@ library(gridExtra)
 We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, I checked to validate the data set contained no missed values.  
 
 # ``r params$channel`` Analysis
-# Load Data, Rename Variables and check for NAs 
+# Load data, rename variables and check for NAs 
 ```{r}
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
                               rename(
@@ -104,7 +105,7 @@ dataPivot <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thurs
 newData <- dataPivot %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
 ```
 
-# Create Train and Test Sets
+# Create Training and Testing Sets
 
 Part of the automation when we run the `Render_Code.R`, it selects each channel individually to complete the analysis.
 ```{r}
@@ -139,19 +140,19 @@ selectTrain %>% dplyr::select(shares, starts_with("rate")) %>% summary()
 ```
 The summary provides us with information about the distribution (shape) of  shares, (response variable), rate_positive_words, and rate_negative_word.
 
-    If mean is greater than median, then Right-skewed with outliers towards the right tail.    
-    If mean is less than median, then Left-skewed with outliers towards the left tail.    
-    If mean equals to median, then Normal distribtuion.    
+    If mean is greater than median, then Right-skewed with outliers towards the right tail.
+    If mean is less than median, then Left-skewed with outliers towards the left tail.
+    If mean equals to median, then Normal distribtuion.
 
 
 ## Plots of the Training Data
 
-Note:  Due to the extreme minimize and maximize values in our response variable, shares, we transformed the data by applying Log(). Log() allows us to address tge differences in magnitude throughout the share variable.  The results visually are much better.
+Note:  Due to the extreme minimize and maximize values in our response variable, shares, we transformed the data by applying Log(). Log() allows us to address the differences in magnitude throughout the share variable.  The results visually are much better.
 
 ```{r scatter share}
 g <- ggplot(selectTrain, aes(x=rate_positive_words, y = log(shares)))+geom_point() 
 g + geom_jitter(aes(color = as.factor(weekday))) + 
-	      labs(x = "y", 
+	      labs(x = "shares", 
 	           title = "Rate of Positive Words")
 ```
 We can inspect the trend of shares as a function of the positive word rate. If the points
@@ -227,9 +228,9 @@ ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, av
 ```{r include=FALSE}
 ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
 ```
-Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the varaibles are highly correlated with one another.
+Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the variables are highly correlated with one another.
 
-**need to make corr plot look better - see if can change font on label**
+
 ## More EDA.
 
 The above observations have been simplified further by categorizing the response variable shares into 'Poor'and 'Good'. This gives information, how data is split between the quantiles of the training data. For ``params$channel`` , the shares below Q2 are grouped Poor and above Q2 as Good 
@@ -500,15 +501,9 @@ trControl = trainControl(method = "cv", number = 5)
 )
 
 lmFit1$results
-```
 
-
-```{r}
-lmFit1$bestTune
-```
-
-```{r}
-coef(lmFit1$finalModel, 5)
+predBest <- predict(lmFit1, newdata = selectTest)  %>% as_tibble()
+postResample(predBest, obs = selectTest$shares)
 ```
 
 
@@ -521,16 +516,21 @@ Random forest is a decision tree method. It takes a desired number of bootstrapp
 The random forest model is created using `rf` as the method and `mtry` for the tuning grid.
 
 
-
 ```{r}
-rfFit1 <- train(shares ~. , data = selectTrain %>% dplyr::select(shares, n_non_stop_unique_tokens, kw_avg_max, self_reference_min_shares, n_tokens_content, num_hrefs,kw_max_avg, weekday,n_non_stop_words, num_videos, kw_avg_avg),
+rfFit <- train(shares ~. , data = selectTrain %>% dplyr::select('num_videos', 'num_imgs','num_keywords',
+                                   'global_subjectivity','global_sentiment_polarity',
+                                   'global_rate_positive_words','is_weekend',
+                                   'avg_positive_polarity','title_sentiment_polarity','shares'),
 method = 'rf',
-trControl = trainControl(method = 'cv', number = 3),
+trControl = trainControl(method = 'cv', number = 5),
 preProcess = c("center", "scale"),
 tuneGrid  = data.frame(mtry = 1:10)    
 )
 
-rfFit1
+
+rfPredict<-predict(rfFit,newdata=selectTest) %>% as_tibble()
+RF_Trees<-postResample(rfPredict, obs = selectTest$shares)
+
 ```
 
 ## Linear Regression with PCA.
