@@ -7,7 +7,6 @@ params:
 ---
 
 
-
 ```{r setup, include=FALSE}
 # Set up for knit process.  Set universal chunk code options, so it will not be necessary to update each chunk individually.
 
@@ -48,7 +47,7 @@ The Exploratory analysis and Modelling was carried on the remaining set of selec
 2. `tidyr` - A part of the `tidyverse` used for data cleaning
 3. `ggplot2`- A part of the `tidyverse` used for creating graphics
 4  `caret` - To run the Regression and ensemble methods with Train/Split and cross validation.
-5.  `knitr`: To get nice table printing formats, mainly for the contingency tables.
+5. `knitr`: To get nice table printing formats, mainly for the contingency tables.
 
 ```{r lib, include = FALSE}
 
@@ -152,7 +151,7 @@ Note:  Due to the extreme minimize and maximize values in our response variable,
 ```{r scatter share}
 g <- ggplot(selectTrain, aes(x=rate_positive_words, y = log(shares)))+geom_point() 
 g + geom_jitter(aes(color = as.factor(weekday))) + 
-	      labs(x = "shares", 
+	      labs(x = "positive words", y = "shares",
 	           title = "Rate of Positive Words")
 ```
 We can inspect the trend of shares as a function of the positive word rate. If the points
@@ -383,63 +382,69 @@ print(paste("Number of Principal Components optimized are",count ,"for cumuative
 Before using any reduction algorithm to determine which variables to be in the model, I used the correlation tables above to reduce the predictors.  If the predictors are correlated, it's not necessary to similar predictor.
 
 So I decided to remove min and max, if the predictor also contained age:
- min_positive_polarity
- max_positive_polarity
- min_negative_polarity
- max_negative_polarity
- self_reference_min_shares
- self_reference_max_shares
- kw_min_avg
- kw_max_avg
- kw_min_max
- kw_max_max
- kw_min_min
- kw_max_min
+
+    min_positive_polarity
+    max_positive_polarity
+    min_negative_polarity
+    max_negative_polarity
+    self_reference_min_shares
+    self_reference_max_shares
+    kw_min_avg
+    kw_max_avg
+    kw_min_max
+    kw_max_max
+    kw_min_min
+    kw_max_min
  
 I removed all of the "LDA_".  When you view the correlation chart above, they seem to be correlated.  In addition, I am not sure what LDA means.  When I googled it, the results referenced modeling and Latent Dirichlet Allocation.
-LDA_00: Closeness to LDA topic 0
-LDA_01: Closeness to LDA topic 1
-LDA_02: Closeness to LDA topic 2
-LDA_03: Closeness to LDA topic 3
-LDA_04: Closeness to LDA topic 4
+
+    LDA_00: Closeness to LDA topic 0
+    LDA_01: Closeness to LDA topic 1
+    LDA_02: Closeness to LDA topic 2
+    LDA_03: Closeness to LDA topic 3
+    LDA_04: Closeness to LDA topic 4
 
 I removed the following, because the data contains the absolute value of the same information:
-title_subjectivity
-title_sentiment_polarity
+
+    title_subjectivity
+    title_sentiment_polarity
 
 I removed the following, because of their strong relationship between global_rate_positive_words and global_rate_negative_words:
-global_subjectivity
-global_sentiment_polarity
+
+    global_subjectivity
+    global_sentiment_polarity
 
 
 I removed the following, because of their strong relationship between n_tokens_content:
-n_unique_tokens
-n_non_stop_unique_tokens
-n_non_stop_words
+
+    n_unique_tokens
+    n_non_stop_unique_tokens
+    n_non_stop_words
 
 The final data set will contain the following columns (features):
-n_tokens_title
-n_tokens_content
-num_hrefs
-num_self_hrefs
-num_imgs
-num_videos
-average_token_length
-num_keywords
-kw_avg_min
-kw_avg_max
-kw_avg_avg
-self_reference_avg_sharess
-global_rate_positive_words
-global_rate_negative_words
-rate_positive_words
-rate_negative_words
-avg_positive_polarity
-avg_negative_polarity
-abs_title_subjectivity
-abs_title_sentiment_polarity
 
-So, that leaves us with 20. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis.
+    n_tokens_title
+    n_tokens_content
+    num_hrefs
+    num_self_hrefs
+    num_imgs
+    num_videos
+    average_token_length
+    num_keywords
+    kw_avg_min
+    kw_avg_max
+    kw_avg_avg
+    self_reference_avg_sharess
+    global_rate_positive_words
+    global_rate_negative_words
+    rate_positive_words
+    rate_negative_words
+    avg_positive_polarity
+    avg_negative_polarity
+    abs_title_subjectivity
+    abs_title_sentiment_polarity
+
+This leaves us with 20. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis. I decide to use best stepwise to further reduce the number of variables in the model. 
 
 # Linear Regression
 
@@ -467,14 +472,16 @@ For the results of a linear regression model to be valid and reliable, the follo
 
 
 
-I hope to have the remaining code completed by tomorrow.  I've been having problems with the run-time..
-So, I'm working on parallel computing.
-
 ## Multiple Linear Regression using Best Stepwise
-```{r}
+
+This method combines the backward and forward step-wise methods to find the best result.  We start with no predictor then sequentially add the predictors that contribute the most (Forward). However after adding each new variables, it will remove any variables that no longer improve the fit of the model.
+
+After running the Best Stepwise method, we will apply this method to the test data.
+
+```{r stepwise}
 set.seed(21)
 
-lmFit1<- train(shares ~ ., data = selectTrain%>% dplyr::select(shares, n_tokens_title,
+lmFit<- train(shares ~ ., data = selectTrain%>% dplyr::select(shares, n_tokens_title,
 n_tokens_content,
 num_hrefs,
 num_self_hrefs,
@@ -500,36 +507,125 @@ tuneGrid  = data.frame(nvmax = 1:20),
 trControl = trainControl(method = "cv", number = 5)
 )
 
-lmFit1$results
+lmFit$results
 
-predBest <- predict(lmFit1, newdata = selectTest)  %>% as_tibble()
-postResample(predBest, obs = selectTest$shares)
+```
+```{r}
+lmFit$bestTune
+```
+```{r}
+#coef(lmFit$finalModel, 5)
 ```
 
 
+```{r lm}
+set.seed(21)
+
+btTrain <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
+                                 
+btTest <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
+
+lmFit1<- train(shares ~ ., data = btTrain,
+method = 'lm',
+trControl = trainControl(method = "cv", number = 5)
+)
+
+lmFit1$results
+
+predBest <- predict(lmFit1, newdata = btTest)  %>% as_tibble()
+LinearRegression_1 <- postResample(predBest, obs =btTest$shares)
+```
+## Multiple Linear Regression on Original Variable Selection
+We also included a model that included using the variables selected from correlation observations. 
+
+```{r lm_Orginal_Selection}
+set.seed(21)
+
+stTrain <- selectTrain%>% dplyr::select(shares, n_tokens_title,
+n_tokens_content,
+num_hrefs,
+num_self_hrefs,
+num_imgs,
+num_videos,
+average_token_length,
+num_keywords,
+kw_avg_min,
+kw_avg_max,
+kw_avg_avg,
+self_reference_avg_sharess,
+global_rate_positive_words,
+global_rate_negative_words,
+rate_positive_words,
+rate_negative_words,
+avg_positive_polarity,
+avg_negative_polarity,
+abs_title_subjectivity,
+abs_title_sentiment_polarity)
+
+                                 
+stTest <- selectTrain%>% dplyr::select(shares, n_tokens_title,
+n_tokens_content,
+num_hrefs,
+num_self_hrefs,
+num_imgs,
+num_videos,
+average_token_length,
+num_keywords,
+kw_avg_min,
+kw_avg_max,
+kw_avg_avg,
+self_reference_avg_sharess,
+global_rate_positive_words,
+global_rate_negative_words,
+rate_positive_words,
+rate_negative_words,
+avg_positive_polarity,
+avg_negative_polarity,
+abs_title_subjectivity,
+abs_title_sentiment_polarity)
+
+lmFit2<- train(shares ~ ., data = stTrain,
+method = 'lm',
+trControl = trainControl(method = "cv", number = 5)
+)
+
+lmFit2$results
+
+OrgBest <- predict(lmFit2, newdata = stTest)  %>% as_tibble()
+LinearRegression_3 <- postResample(predBest, obs = stTest$shares)
+```
 
 
 # Random Forest
 
-Random forest is a decision tree method. It takes a desired number of bootstrapped samples from the data and builds a tree for each sample. While building the trees, if a split occurs, then only a random sample of trees are averaged.  The average of predictions are used to determine the final model
+Random forest is a decision tree method. It takes a desired number of bootstrapped samples from the data and builds a tree for each sample. While building the trees, if a split occurs, then only a random sample of trees are averaged.  The average of predictions are used to determine the final model.
 
-The random forest model is created using `rf` as the method and `mtry` for the tuning grid.
+The random forest model using R is created using `rf` as the method and `mtry` for the tuning grid.  The tuning grid will provide results using 1 variable up to nine variables in the model.
 
 
-```{r}
-rfFit <- train(shares ~. , data = selectTrain %>% dplyr::select('num_videos', 'num_imgs','num_keywords',
-                                   'global_subjectivity','global_sentiment_polarity',
-                                   'global_rate_positive_words','is_weekend',
-                                   'avg_positive_polarity','title_sentiment_polarity','shares'),
+```{r random forest}
+trainCtrl <- trainControl(method = 'repeatedcv', number = 3, repeats =  1)
+
+rfTrain <- selectTrain %>% dplyr::select(num_videos, num_imgs,num_keywords,
+                                   global_subjectivity,global_sentiment_polarity,
+                                   global_rate_positive_words,is_weekend,
+                                   avg_positive_polarity,title_sentiment_polarity,shares)
+
+rfTest <- selectTrain %>% dplyr::select(num_videos, num_imgs,num_keywords,
+                                   global_subjectivity,global_sentiment_polarity,
+                                   global_rate_positive_words,is_weekend,
+                                   avg_positive_polarity,title_sentiment_polarity,shares)
+
+rfFit <- train(shares ~. , data = rfTrain,
 method = 'rf',
-trControl = trainControl(method = 'cv', number = 5),
+trControl = trainCtrl,
 preProcess = c("center", "scale"),
-tuneGrid  = data.frame(mtry = 1:10)    
+tuneGrid  = data.frame(mtry = 1:9)    
 )
 
 
-rfPredict<-predict(rfFit,newdata=selectTest) %>% as_tibble()
-RF_Trees<-postResample(rfPredict, obs = selectTest$shares)
+rfPredict<-predict(rfFit,newdata=rfTest) %>% as_tibble()
+Random_Forest<-postResample(rfPredict, obs = rfTest$shares)
 
 ```
 
@@ -594,7 +690,7 @@ Boosted_Trees<-postResample(boostpredict, obs = BT_Test$shares)
 
 ```{r,fig.height=15, fig.width=10 }
 
-Metrics_df<-data.frame(rbind(LinearRegression_2,Boosted_Trees))
+Metrics_df<-data.frame(rbind(LinearRegression_1, LinearRegression_2, LinearRegression_3, Boosted_Trees, Random_Forest))
 Metrics_df
 best_model<-Metrics_df[which.min(Metrics_df$RMSE), ]
 best_model_name<-best_model$row.names
