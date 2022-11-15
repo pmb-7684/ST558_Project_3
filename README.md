@@ -1,7 +1,7 @@
 # Project 3 - Predictive Models   
 ## Smitali Patnaik & Paula Bailey
 
-The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are done on the Online News Popularity Data Set. Additonal information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
+The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are completed on the Online News Popularity Data Set. Additonal information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
 
 The data contains the following variables:
 
@@ -67,7 +67,7 @@ The data contains the following variables:
 59. abs_title_sentiment_polarity: Absolute polarity level
 60. shares: Number of shares (target)
 
-In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model and boosted tree. These models were constructed on training data set and than tested on test data set. The best model was selected based on lowest RMSE.
+In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model, and boosted tree. These models were constructed on training data set and than tested on test data set. The best model was selected based on lowest RMSE.
 
 List of packages used:
 
@@ -96,7 +96,7 @@ library(rmarkdown)
 
 apply(reports, MARGIN = 1,
       FUN = function(x){
-        render(input = "./TestOne.Rmd",
+        render(input = "./Project_3.Rmd",
                output_format = "github_document", 
                output_file = x[[1]], 
                params = x[[2]])
