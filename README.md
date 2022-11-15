@@ -1,4 +1,4 @@
-# Project 3 - Predicitive Models   
+# Project 3 - Predictive Models   
 ## Smitali Patnaik & Paula Bailey
 
 The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are done on the Online News Popularity Data Set. Additonal information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
