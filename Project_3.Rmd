@@ -1,10 +1,29 @@
 ---
-title: "Project 3 - Predicitive Models"
+title: "Project 3: Predictive Model for ``r params$channel`` Analysis"
 author: "Smitali Paknaik and Paula Bailey"
 date: "2022-11-04"
 params:
    channel: "data_channel_is_lifestyle"
 ---
+
+
+<style type="text/css">
+
+h1.title {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 25px;
+  font-family: "Times New Roman", Times, serif;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 25px;
+  font-family: "Times New Roman", Times, serif;
+  text-align: center;
+}
+</style>
 
 
 ```{r setup, include=FALSE}
@@ -16,15 +35,15 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 # Background / Introduction
 ## Introduction 
 
-The main goal of this page is to analyze OnlineNewsPopularity data using Exploratory Data Analysis and apply regression and ensemble methods to predict the response variable ~share using a set of predictor variables optimized using set of variable selection methods. 
+The main goal of this page is to analyze OnlineNewsPopularity data using Exploratory Data Analysis (EDA) and apply regression and ensemble methods to predict the response variable ~share using a set of predictor variables optimized using set of variable selection methods. 
 
-At first step the data is to shape the data to get the various data_channel_groups together. This is needed in order to get proper filtering of the required channels in the automation script. The EDA is performed on each group using graphs, tables and heatmaps. 
+Our first step is to shape the data to get the various data_channel_groups together. This is needed in order to get proper filtering of the required channels in the automation script. The EDA is performed on each group using graphs, tables and heatmaps. 
  
 The next step includes creating train and test data for train fit and test prediction. The next steps includes variable selection /pre-processing of data (if needed) and running 2 regression models, Linear models are the first step of performing model fit and predictions. The data may be easily explained by a set of linear equations and may not require complex algorithms that can consume time, cost and may require computation speed. Hence, regression models often are a great start to run predictions.
  
 The Other methods evaluated here are Random Forest and Boosted Tree method. Both are types of ensemble methods that use tree based model to evaluate future values. These methods do not have any specified methodology in model fit. They work on the best statistic obtained while constructing the model fit. Theoretically ensemble methods are said to have a good prediction, and using this data it will be evaluated on what categories how these models perform.
 
-In the end for each channel category, all the 4 models are compared and best model that suits this category of channel is noted.  
+At the end for each channel analysis, all 4 models are compared and best model that suits this category of channel is noted.  
 
 #### About Data and Data Preparation
 OnlineNewsPopularity data has following useful variables:
@@ -32,8 +51,7 @@ _from models we do for eda and regression/ensemble
 
 The channel categories evaluated are : 'lifestyle','entertainment','bus','socmed','tech' and 'world'.
 
-The csv file is imported read using `read_csv`. As we have automated the analysis, we need each channel to be fed into the R code we have and get the analysis and predictions as a different file. The channel categories seem to be in column formats so they have been converted into long form using `pivot_longer`. 
-The required category is then easily filter by passing the channel variables into the filter code.
+The csv file is imported read using `read_csv()`. As we have automated the analysis, we need each channel to be fed into the R code we have and get the analysis and predictions as a different file. The channel categories are in column (or wide) format so they have been converted into long format using `pivot_longer`. The required category is then easily filter by passing the channel variables into the filter code.
 
 Irrelevant columns removed - Note after all the work and cleaning
 The Exploratory analysis and Modelling was carried on the remaining set of select variables. 
@@ -54,22 +72,21 @@ The Exploratory analysis and Modelling was carried on the remaining set of selec
 library(caret)      #training/test (splitting)
 library(glmnet)     #best subset selection
 library(GGally)     #create ggcorr and ggpairs plots
-library(ggplot2)
+library(ggplot2)    # A part of the tidyverse used for creating graphics
 library(leaps)      #identify different best models of different sizes
-library(markdown)
+library(markdown)   #rendered several output formats
 library(MASS)       #access to forward and backward selection algorithms
-library(purrr)
+#library(purrr)
 library(tidyverse)  #tidyverse set of packages and functions
-library(randomForest)
-library(gridExtra)
+library(randomForest) #access random forest algorithms
+library(gridExtra)  # plot with multiple grid objects
 
 ```
 
-We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, I checked to validate the data set contained no missed values.  
 
-# ``r params$channel`` Analysis
-# Load data, rename variables and check for NAs 
-```{r}
+
+# Load data and check for NAs 
+```{r }
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
                               rename(
                                     Monday      = `weekday_is_monday`,
@@ -85,10 +102,11 @@ data <- read.csv("OnlineNewsPopularity.csv") %>%
 anyNA(data)  
 ```
 
+
 We used read.csv to load in the data.  The UCI site mentioned that `url` and `timedelta` are non-predictive variables, so we will remove them from our data set.  Afterwards, checked to validate the data set contained no missed values.  anyNA(data) returned FALSE, so the file has no missing data.
 
 
-For the automation, it will be easier if all the channels (ie data_channel_is_*) are in one column.  I used `pivot_longer()` to pivot columns: data_channel_is_lifestyle,data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, data_channel_is_world from wide to long format.
+For the automation process, it will be easier if all the channels (ie data_channel_is_*) are in one column.  We used `pivot_longer()` to pivot columns: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world from wide to long format.
 ```{r}
 dataPivot <- data %>% pivot_longer(cols = c("data_channel_is_lifestyle", "data_channel_is_entertainment", "data_channel_is_bus","data_channel_is_socmed","data_channel_is_tech", "data_channel_is_world"),names_to = "channel",values_to = "Temp") 
 
@@ -96,7 +114,7 @@ dataPivot <- data %>% pivot_longer(cols = c("data_channel_is_lifestyle", "data_c
 newData <- dataPivot %>% filter(Temp != 0) %>% dplyr::select(-Temp)
 ```
 
-Now, the individual channel columns are combined into one column named channel.  The Temp value represents if an article exists for that particular change.  For the final data set, we will remove any values with 0.  Next, we will perform the same pivot_longer() process on the days of the week
+Now, the individual channel columns are combined into one column named channel.  The variable Temp represents if an article exists for that particular channel.  For the final data set, we will remove any values with 0.  We performed the same pivot_longer() process on the days of the week.
 
 ```{r}
 dataPivot <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
@@ -106,13 +124,14 @@ newData <- dataPivot %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
 
 # Create Training and Testing Sets
 
-Part of the automation when we run the `Render_Code.R`, it selects each channel individually to complete the analysis.
+When we run the `Render_Code.R`, this code chunk filters data for each channel type to complete the analysis.
 ```{r}
 selectChannel <- newData %>% filter(channel == params$channel)
+
 ```
 
 
-To make the data reproducible, we used set seed to 21 and created the training and testing set with a 70% split.
+To make the data reproducible, we set the seed to 21 and created the training and testing set with a 70% split.
 ```{r}
 
 set.seed(21)
@@ -123,12 +142,54 @@ selectTest <- selectChannel[-trainIndex, ]
 ```
 
 # Exploratory Data Analysis
-## Summary on Training Data
+## Training Data Summary
+
+```{r eval=FALSE, include=FALSE}
+selectTrainG <- selectTrain %>% rename(
+                                  Words_Title    = `n_tokens_title`,
+                                  Words_Article  = `n_tokens_content`,
+                                  Unique_Words   = `n_unique_tokens`,
+                                  NonStop_Words  = `n_non_stop_words`,
+                                  Num_Unique     =  `n_non_stop_unique_tokens`,
+                                  Num_Links      = `num_hrefs`,
+                                  Num_Self      = `num_self_hrefs`,
+                                  Num_Imgs       = `num_imgs`,
+                                  Num_Video      = `num_videos`,
+                                  Avg_Length = `average_token_length`,
+                                  Num_Key = `num_keywords`,
+                                  Self_Min = `self_reference_min_shares`,
+                                  Self_Max =`self_reference_max_shares`,
+                                  Self_Avg =`self_reference_avg_sharess`,
+                                  Global_S = `global_subjectivity`,
+                                  Global_SP = `global_sentiment_polarity`,
+                                  Global_Pos = `global_rate_positive_words`,
+                                  Global_Neg =`global_rate_negative_words`,
+                                  Rate_Pos = `rate_positive_words`,
+                                  Rate_Neg = `rate_negative_words`,
+                                  Avg_Pos  =`avg_positive_polarity`,
+                                  Min_Pos  =`min_positive_polarity`,
+                                  Max_Pos  =`max_positive_polarity`,
+                                  Avg_Neg  =`avg_negative_polarity`,
+                                  Min_Neg  =`min_negative_polarity`,
+                                  Max_Neg  =`max_negative_polarity`,
+                                  Title_S  =  `title_subjectivity`,
+                                  Title_SP =  `title_sentiment_polarity`,
+                                  Abs_Title_S = `abs_title_subjectivity`,
+                                  Abs_Title_P = `abs_title_sentiment_polarity`)
+
+```
+
+
+[where](https://www.r-bloggers.com/2019/11/quicker-knitr-kables-in-rstudio-notebook/)
+```{r}
+kable_if <- function(x, ...) if (interactive()) print(x, ...) else knitr::kable(x, ...)
+```
+
 
 ```{r}
 str(selectTrain)
 ```
-Viewing the structure of the data, the data types seem to be fine.
+`str()` allows us to view the structure of the data. We see each variable has an appropriate data type.
 
 ```{r include=FALSE}
 summary(selectTrain)
@@ -137,97 +198,121 @@ summary(selectTrain)
 ```{r}
 selectTrain %>% dplyr::select(shares, starts_with("rate")) %>% summary()
 ```
-The summary provides us with information about the distribution (shape) of  shares, (response variable), rate_positive_words, and rate_negative_word.
+This `summary()` provides us with information about the distribution (shape) of  shares (response variable), rate_positive_words, and rate_negative_word.
 
-    If mean is greater than median, then Right-skewed with outliers towards the right tail.
-    If mean is less than median, then Left-skewed with outliers towards the left tail.
-    If mean equals to median, then Normal distribtuion.
+    If mean is greater than median, then Right-skewed with outliers towards the right tail.  
+    If mean is less than median, then Left-skewed with outliers towards the left tail.  
+    If mean equals to median, then Normal distribtuion.  
 
 
-## Plots of the Training Data
+## Training Data Visualizations
 
-Note:  Due to the extreme minimize and maximize values in our response variable, shares, we transformed the data by applying Log(). Log() allows us to address the differences in magnitude throughout the share variable.  The results visually are much better.
+Note:  Due to the extreme minimize and maximize values in our response variable, shares, we transformed the data by applying log(). It allows us to address the differences in magnitude throughout the share variable.  The results visually are much better. 
 
 ```{r scatter share}
+
 g <- ggplot(selectTrain, aes(x=rate_positive_words, y = log(shares)))+geom_point() 
 g + geom_jitter(aes(color = as.factor(weekday))) + 
-	      labs(x = "positive words", y = "shares",
-	           title = "Rate of Positive Words")
+	    labs(x = "positive words", y = "shares",
+	    title = "Rate of Positive Words") +
+  scale_fill_discrete(breaks=c("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"))+
+      scale_colour_discrete("") 
+      
 ```
+     
 We can inspect the trend of shares as a function of the positive word rate. If the points
 show an upward trend, then articles with more positive words tend to be shared more often.
 If we see a negative trend then articles with more positive words tend to be shared less often.
 
 
 ```{r histogram shares}
-g <- ggplot(selectTrain, aes(x = log(shares)))
+g <- ggplot(selectTrain, aes(x = shares))
 g + geom_histogram(bins = sqrt(nrow(selectTrain)))  + 
 	      labs(title = "Histogram of Shares")
 ```
-We can inspect the shape of the response variable, shares. If the share of the histogram is symmetrical, then shares has a normal distribution with the shares evenly spread throughout. If the shape is left skewed, then the tail which contains a most of the outliers will be extended to the left.  If the shape is right skewed, then the tail which contains a most of the outliers will be extended to the right.
+To view the true shape of the response variable, shares, we did not apply log() to transform the data.
+
+We can inspect the shape of the response variable, shares. If the share of the histogram is symmetrical or bell-shaped, then shares has a normal distribution with the shares evenly spread throughout. The mean is equal to the median. If the shape is left skewed or right leaning, then the tail which contains a most of the outliers will be extended to the left. The mean is less than the median.  If the shape is right skewed or left leaning, then the tail which contains a most of the outliers will be extended to the right.  The mean is greater than the median.
+
 
 ```{r boxplot shares}
 
 g <- ggplot(selectTrain) 
+
  g + aes(x = weekday, y = log(shares)) +
   geom_boxplot(varwidth = TRUE) + 
   geom_jitter(alpha = 0.25, width = 0.2,aes(color = as.factor(weekday)))  + 
-	 labs(title = "Box Plot of Shares Per Day")
+	 labs(title = "Box Plot of Shares Per Day") +
+   scale_colour_discrete("") +
+   scale_x_discrete(limits = c("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")) +
+   theme(legend.position = "none")
 ```
 We can inspect the distribution of shares as a function of the day of the week. If the points
 are within the body of the box, then articles shared are within the 1st and 3rd quartile.
-If we see a articles outside of the whiskers of the boxplot, it represents outliers in the data.
+If we see black points outside of the whiskers of the boxplot, it represents outliers in the data.  These outliers contribute to the shape of the distribute.
 
 
 ## Contingency Tables
 
-Articles per Channel vs Weekday
 ```{r}
-table(selectTrain$channel, selectTrain$weekday)
-```
-We can inspect the distribution of shares as a function of the day of the week. 
+kable_if(table(selectTrain$channel, selectTrain$weekday))
 
-Day of the Week vs Number of Keywords
-```{r}
-table(selectTrain$weekday, selectTrain$num_keywords)
 ```
-We can inspect the distribution of number of keywords as a function of the day of the week. Across the top are the unique number of keywords in the channel.  Share are divided by number of keywords and the day the article is shared.
+Articles per Channel vs Weekday - We can inspect the distribution of articles shared as a function of the day of the week. We can easily see which days are articles more likely shared.
+
+
+
+```{r}
+kable_if(table(selectTrain$weekday, selectTrain$num_keywords))
+```
+Day of the Week vs Number of Keywords - We can inspect the distribution of number of keywords as a function of the day of the week. Across the top are the unique number of keywords in the channel.  Articles shared are divided by number of keywords and the day the article is shared.  It's highley likely the more keywords, the more likely an article will be shared with others.
 
 
 ## Correlations
 
-We want to remove any predictor variables that are highly correlated to the response variable which can cause multicollinearity.  If variables have this characteristic it can lead to skewed or misleading results. We can create groupings of  predictor variables to look at the relationship with our response variable, share and to each other.
+We want to remove any predictor variables that are highly correlated to the response variable which can cause multicollinearity.  If variables have this characteristic it can lead to skewed or misleading results. We created groupings of predictor variables to look at the relationship with our response variable, share and to each other.
 
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "TRUE", label_size=3)
+```{r }
+ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "FALSE", label_size=1)
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  For instance n_token_title and n_non_stop_unique_tokens has a negative relationship.
+
 
 ```{r}
-ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2)
+ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label_size=3, label = "FALSE")
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
 
-
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "TRUE")
+```{r }
+ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
 
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "TRUE")
+```{r }
+ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  
 
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "TRUE")
+
+```{r }
+ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "FALSE", label_size=3)
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other variables above have a mild relationship to one another.
 
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "TRUE")
+```{r }
+ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  
 
 
-```{r include=FALSE}
-ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "TRUE")
+```{r }
+ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "FALSE")
 ```
-Looking at the results from the `ggcorr`, we do not see any highly correlated relationships with our response variable, share.  if there was such relationship, it would be 1 or orange for highly positive correlated and -1 or blue for highly negative correlated.   We do notice that many of the variables are highly correlated with one another.
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
+
+Looking at the overall results from the `ggcorr()`, we do not see any highly correlated relationships( )positive or negative) with our response variable, share.  If there was a relationship, it would be orange for highly positive correlated or blue for highly negative correlated.   We do notice that many of the variables are highly correlated with one another.
+
+For the custom limitations of correlation maps above, the decision was made not to include the actual correlation value.  Even with the attempt to shorten the label for the variable, the maps were cluttered and busy.
 
 
 ## More EDA.
@@ -324,7 +409,7 @@ grid.arrange(g1, g2, g3,g4,g5,g6, ncol = 2, nrow = 3)
 ```
 #### Exploratory Data Analysis (EDA) with Principal Component Analysis (PCA).
 
-A different aspect of EDA that is tried here. Although we are uncertain if this will be a good excercise ot not. But we do see the data set has too many predicotr variables and in any industry cost of computations and labor counts. In order to find more efficient way to reduce size of data set and understand variance between variables,we are using Principal Component Analysis on training data to see if the the predictors variables can be used together to determine some relationship with the response variable. Principal Component is a method that has many usages, it is used in dimensionality reduction, for large dataset, and can also help in understanding the relationship among different variables and their impact on the response variable in terms of variance and also an effective method to remove collinearity from the dataset by removing highly correlated predictors. 
+A different aspect of EDA that is tried here. Although we are uncertain if this will be a good exercise or not. But we do see the data set has too many predictor variables and in any industry cost of computations and labor counts. In order to find more efficient way to reduce size of data set and understand variance between variables,we are using Principal Component Analysis on training data to see if the the predictors variables can be used together to determine some relationship with the response variable. Principal Component is a method that has many usages, it is used in dimensionality reduction, for large dataset, and can also help in understanding the relationship among different variables and their impact on the response variable in terms of variance and also an effective method to remove collinearity from the dataset by removing highly correlated predictors. 
 
 Here we are using `prcomp` on our train data to find our principal components. Some select variables have been discarded as their magnitude was very less and may /may not have impact into the model but to keep the analysis simple , some critical ones have been considered to demonstrate dimensionality reduction. 
 
@@ -377,26 +462,26 @@ print(paste("Number of Principal Components optimized are",count ,"for cumuative
 
 ```
 
-# Variable Selection
+# Variable Selection by Correlation Results
 
-Before using any reduction algorithm to determine which variables to be in the model, I used the correlation tables above to reduce the predictors.  If the predictors are correlated, it's not necessary to similar predictor.
+Before using any reduction algorithm to determine which variables to be in the model, we used the correlation tables above to reduce the predictors.  If the predictors are correlated, it's not necessary to similar predictor.
 
-So I decided to remove min and max, if the predictor also contained age:
+We removed any variable that contained min and max, if the predictor also contained age:
 
-    min_positive_polarity
-    max_positive_polarity
-    min_negative_polarity
-    max_negative_polarity
-    self_reference_min_shares
-    self_reference_max_shares
-    kw_min_avg
-    kw_max_avg
-    kw_min_max
-    kw_max_max
-    kw_min_min
-    kw_max_min
+    min_positive_polarity   
+    max_positive_polarity   
+    min_negative_polarity   
+    max_negative_polarity   
+    self_reference_min_shares   
+    self_reference_max_shares   
+    kw_min_avg   
+    kw_max_avg   
+    kw_min_max   
+    kw_max_max   
+    kw_min_min  
+    kw_max_min  
  
-I removed all of the "LDA_".  When you view the correlation chart above, they seem to be correlated.  In addition, I am not sure what LDA means.  When I googled it, the results referenced modeling and Latent Dirichlet Allocation.
+We removed all of the "LDA_".  When you view the correlation chart above, they seem to be correlated.  In addition, I am not sure what LDA means.  When googled, the results referenced modeling and Latent Dirichlet Allocation.
 
     LDA_00: Closeness to LDA topic 0
     LDA_01: Closeness to LDA topic 1
@@ -404,18 +489,18 @@ I removed all of the "LDA_".  When you view the correlation chart above, they se
     LDA_03: Closeness to LDA topic 3
     LDA_04: Closeness to LDA topic 4
 
-I removed the following, because the data contains the absolute value of the same information:
+We removed the following variables, because the data contains the absolute value of the same information:
 
     title_subjectivity
     title_sentiment_polarity
 
-I removed the following, because of their strong relationship between global_rate_positive_words and global_rate_negative_words:
+We removed the following variables, because of their strong relationship between global_rate_positive_words and global_rate_negative_words:
 
     global_subjectivity
     global_sentiment_polarity
 
 
-I removed the following, because of their strong relationship between n_tokens_content:
+We removed the following variables, because of their strong relationship between n_tokens_content:
 
     n_unique_tokens
     n_non_stop_unique_tokens
@@ -444,7 +529,9 @@ The final data set will contain the following columns (features):
     abs_title_subjectivity
     abs_title_sentiment_polarity
 
-This leaves us with 20. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis. I decide to use best stepwise to further reduce the number of variables in the model. 
+Out of the original 61 variables, we will be looking at using up to 20 variables. There is a relationship between num_hrefs and num_self_hrefs.  One of those may be removed later in the analysis. We decided to use best stepwise to further reduce the number of variables in the model. 
+
+We will also run a separate linear regression model using the variables selected from visually correlation results (above).
 
 # Linear Regression
 
@@ -454,7 +541,8 @@ For a Simple Linear Regression, we have one response variable and one predictor 
 
     y:  response variable
     b0: intercept (baseline value, if all other values are zero)
-    b1: 
+    b1: regression coefficient
+    x:  independent variable
 
 For Multiple Linear Regression, we have one response variable and any number of predictor variables. It uses the formula Y = B0 + B1X1 + B2X2 + … + BpXp + E, where
 
@@ -465,18 +553,18 @@ For Multiple Linear Regression, we have one response variable and any number of 
 
 For the results of a linear regression model to be valid and reliable, the following must be true
 
-    1. *Linear relationship*: There exists a linear relationship between the independent variable, x, and the dependent variable, y. 
-    2. *Independence*: The residuals are independent. 
-    3. *Homoscedasticity*: The residuals have constant variance at every level of x.
-    4. *Normality*: The residuals of the model are normally distributed.
+    1. Linear relationship: There exists a linear relationship between the independent variable, x, and the dependent variable, y. 
+    2. Independence: The residuals are independent. 
+    3. Homoscedasticity: The residuals have constant variance at every level of x.
+    4. Normality: The residuals of the model are normally distributed.
 
 
 
-## Multiple Linear Regression using Best Stepwise
+## Linear Regression using Best Stepwise
 
-This method combines the backward and forward step-wise methods to find the best result.  We start with no predictor then sequentially add the predictors that contribute the most (Forward). However after adding each new variables, it will remove any variables that no longer improve the fit of the model.
+The Best Stepwise method combines the backward and forward step-wise methods to find the best result.  We start with no predictor then sequentially add the predictors that contribute the most (Forward). However after adding each new variables, it will remove any variables that no longer improve the fit of the model.
 
-After running the Best Stepwise method, we will apply this method to the test data.
+After running the Best Stepwise method, we will apply the results to the test data to determine how well the model performed.
 
 ```{r stepwise}
 set.seed(21)
@@ -513,9 +601,6 @@ lmFit$results
 ```{r}
 lmFit$bestTune
 ```
-```{r}
-#coef(lmFit$finalModel, 5)
-```
 
 
 ```{r lm}
@@ -525,18 +610,19 @@ btTrain <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max,
                                  
 btTest <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
 
-lmFit1<- train(shares ~ ., data = btTrain,
+lmFit2<- train(shares ~ ., data = btTrain,
 method = 'lm',
 trControl = trainControl(method = "cv", number = 5)
 )
 
-lmFit1$results
+lmFit2$results
 
-predBest <- predict(lmFit1, newdata = btTest)  %>% as_tibble()
-LinearRegression_1 <- postResample(predBest, obs =btTest$shares)
+predBest <- predict(lmFit2, newdata = btTest)  %>% as_tibble()
+LinearRegression_4 <- postResample(predBest, obs =btTest$shares)
 ```
-## Multiple Linear Regression on Original Variable Selection
-We also included a model that included using the variables selected from correlation observations. 
+## Linear Regression on Original Variable Selection
+
+As a comparison, we also included a model that includes  the variables selected from correlation heat maps. 
 
 ```{r lm_Orginal_Selection}
 set.seed(21)
@@ -584,15 +670,38 @@ avg_negative_polarity,
 abs_title_subjectivity,
 abs_title_sentiment_polarity)
 
-lmFit2<- train(shares ~ ., data = stTrain,
+lmFit3<- train(shares ~ ., data = stTrain,
 method = 'lm',
 trControl = trainControl(method = "cv", number = 5)
 )
 
-lmFit2$results
+lmFit3$results
 
-OrgBest <- predict(lmFit2, newdata = stTest)  %>% as_tibble()
+OrgBest <- predict(lmFit3, newdata = stTest)  %>% as_tibble()
 LinearRegression_3 <- postResample(predBest, obs = stTest$shares)
+```
+# Linear Regression 
+
+```{r}
+lmTest <- selectTrain%>% dplyr::select(num_videos, num_imgs,num_keywords,
+                                   global_subjectivity,global_sentiment_polarity,
+                                   global_rate_positive_words,is_weekend,
+                                   avg_positive_polarity,title_sentiment_polarity,shares)
+
+lmTest <- selectTest%>% dplyr::select(num_videos, num_imgs,num_keywords,
+                                   global_subjectivity,global_sentiment_polarity,
+                                   global_rate_positive_words,is_weekend,
+                                   avg_positive_polarity,title_sentiment_polarity,shares)
+
+lmFit4<- train(shares ~ ., data = stTrain,
+method = 'lm',
+trControl = trainControl(method = "cv", number = 5)
+)
+
+lmFit4$results
+
+lmPredict <- predict(lmFit4, newdata = stTest)  %>% as_tibble()
+LinearRegression_1 <- postResample(predBest, obs = stTest$shares)
 ```
 
 
@@ -604,7 +713,8 @@ The random forest model using R is created using `rf` as the method and `mtry` f
 
 
 ```{r random forest}
-trainCtrl <- trainControl(method = 'repeatedcv', number = 3, repeats =  1)
+trainCtrl <- trainControl(method = 'cv', number = 5)
+#trainCtrl <- trainControl(method = 'repeatedcv', number = 3, repeats =  1)
 
 rfTrain <- selectTrain %>% dplyr::select(num_videos, num_imgs,num_keywords,
                                    global_subjectivity,global_sentiment_polarity,
@@ -706,12 +816,24 @@ The best model for predicting the number of shares for dataset called `r params$
    
 
 ```{r}
+
+
 box_df<-data.frame(Actual_Response=selectTest$shares,
                   Linear_Regression_2=lm_predict$value,
                   Boosted_Trees=boostpredict$value)
 
 boxplot(box_df,boxlwd = 2, outwex = 0.5, boxwex = 0.2)
 ```
+
+```{r}
+
+box_df1<-data.frame(
+                  Linear_Regression_1=lmPredict$value,
+                  Random_Forest = rfPredict$value)
+
+boxplot(box_df1,boxlwd = 2, outwex = 0.5, boxwex = 0.2)
+```
+
 
 # Automation of Building Six Reports 
 ```{r, eval = FALSE}
