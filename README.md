@@ -1,6 +1,6 @@
 ## Predictive Models for Online New Popularity Data Set 
 
-The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are completed on the Online News Popularity Data Set. Additional information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
+The purpose of this repository is to create predictive models and automating R Markdown reports. Analysis are completed on the Online News Popularity Data Set from UCI. Additional information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
 
 #### The data contains the following variables:
 
@@ -66,7 +66,7 @@ The purpose of this repository is to create predictive models and automating RMa
 59. abs_title_sentiment_polarity: Absolute polarity level
 60. shares: Number of shares (target)
 
-In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model, and boosted tree. These models were constructed on training data set and than tested on testing data set. The best model was selected based on lowest RMSE.
+In this project, subsets by data_channel_is_* were produced for automating R Markdown reports.  Predictive models used include linear regression models,  random forest model, and boosted tree. These models were constructed on training data set and than tested on testing data set. The best model was selected based on lowest RMSE.
 
 #### List of packages used:
 
@@ -84,7 +84,7 @@ In this project, subsets by data_channel_is_* were produced for automating RMark
 12. `randomforest` To access random forest algorithms
 13. `tidyr`        A part of the `tidyverse` used for data cleaning
 
-#### Links to the generated analyses.
+#### Links to the view results of analysis.
 
   The analysis for [Lifestyle articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_lifestyleAnalysis.html)   
   The analysis for [Entertainment articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_entertainmentAnalysis.html)   
@@ -93,7 +93,7 @@ In this project, subsets by data_channel_is_* were produced for automating RMark
   The analysis for [Tech articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_techAnalysis.html)   
   The analysis for [World articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_worldAnalysis.html)   
 
-#### Code used to create the analyses.
+#### Code used to create the analysis.
 ```
 selectID <- unique(newData$channel)  
 
