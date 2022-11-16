@@ -13,12 +13,12 @@ h1.title {
   font-size: 38px;
   text-align: center;
 }
-h4.author { /* Header 4 - and the author and data headers use this too  */
+h4.author {
     font-size: 25px;
   font-family: "Times New Roman", Times, serif;
   text-align: center;
 }
-h4.date { /* Header 4 - and the author and data headers use this too  */
+h4.date { 
   font-size: 25px;
   font-family: "Times New Roman", Times, serif;
   text-align: center;
@@ -27,7 +27,7 @@ h4.date { /* Header 4 - and the author and data headers use this too  */
 
 
 ```{r setup, include=FALSE}
-# Set up for knit process.  Set universal chunk code options, so it will not be necessary to update each chunk individually.
+#  Set universal chunk code options, so it will not be necessary to update each chunk individually.
 
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, fig.align='center')
 ```
@@ -76,13 +76,11 @@ library(ggplot2)    # A part of the tidyverse used for creating graphics
 library(leaps)      #identify different best models of different sizes
 library(markdown)   #rendered several output formats
 library(MASS)       #access to forward and backward selection algorithms
-#library(purrr)
 library(tidyverse)  #tidyverse set of packages and functions
 library(randomForest) #access random forest algorithms
 library(gridExtra)  # plot with multiple grid objects
 
 ```
-
 
 
 # Load data and check for NAs 
@@ -275,40 +273,40 @@ We want to remove any predictor variables that are highly correlated to the resp
 ```{r }
 ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "FALSE", label_size=1)
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  For instance n_token_title and n_non_stop_unique_tokens has a negative relationship.
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  For instance, n_token_title and n_non_stop_unique_tokens has a negative relationship.
 
 
 ```{r}
 ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label_size=3, label = "FALSE")
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. 
 
 ```{r }
 ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. We would expect to use this level of correlation for this grouping of variables.
 
 ```{r }
 ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  
 
 
 ```{r }
 ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "FALSE", label_size=3)
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other variables above have a mild relationship to one another.
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other variables above have a mild relationship to one another.
 
 ```{r }
 ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors.  
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  
 
 
 ```{r }
 ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "FALSE")
 ```
-The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can many other relationships which is indicated by the darker orange and blue colors. 
+The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. 
 
 Looking at the overall results from the `ggcorr()`, we do not see any highly correlated relationships( )positive or negative) with our response variable, share.  If there was a relationship, it would be orange for highly positive correlated or blue for highly negative correlated.   We do notice that many of the variables are highly correlated with one another.
 
@@ -608,7 +606,7 @@ set.seed(21)
 
 btTrain <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
                                  
-btTest <- selectTrain%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
+btTest <- selectTest%>% dplyr::select(num_videos, n_tokens_content,kw_avg_max, kw_avg_avg, rate_positive_words,shares)
 
 lmFit2<- train(shares ~ ., data = btTrain,
 method = 'lm',
@@ -649,7 +647,7 @@ abs_title_subjectivity,
 abs_title_sentiment_polarity)
 
                                  
-stTest <- selectTrain%>% dplyr::select(shares, n_tokens_title,
+stTest <- selectTest%>% dplyr::select(shares, n_tokens_title,
 n_tokens_content,
 num_hrefs,
 num_self_hrefs,
@@ -721,7 +719,7 @@ rfTrain <- selectTrain %>% dplyr::select(num_videos, num_imgs,num_keywords,
                                    global_rate_positive_words,is_weekend,
                                    avg_positive_polarity,title_sentiment_polarity,shares)
 
-rfTest <- selectTrain %>% dplyr::select(num_videos, num_imgs,num_keywords,
+rfTest <- selectTest %>% dplyr::select(num_videos, num_imgs,num_keywords,
                                    global_subjectivity,global_sentiment_polarity,
                                    global_rate_positive_words,is_weekend,
                                    avg_positive_polarity,title_sentiment_polarity,shares)
@@ -819,27 +817,23 @@ The best model for predicting the number of shares for dataset called `r params$
 
 
 box_df<-data.frame(Actual_Response=selectTest$shares,
+                  Linear_Regression_1=lmPredict$value,
                   Linear_Regression_2=lm_predict$value,
+                  Random_Forest = rfPredict$value,
                   Boosted_Trees=boostpredict$value)
 
-boxplot(box_df,boxlwd = 2, outwex = 0.5, boxwex = 0.2)
+boxplot(box_df,boxlwd = 2, outwex = 0.5, boxwex = 0.2) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
-```{r}
 
-box_df1<-data.frame(
-                  Linear_Regression_1=lmPredict$value,
-                  Random_Forest = rfPredict$value)
-
-boxplot(box_df1,boxlwd = 2, outwex = 0.5, boxwex = 0.2)
-```
 
 
 # Automation of Building Six Reports 
 ```{r, eval = FALSE}
 selectID <- unique(newData$channel)  
 
-output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
+output_file <- paste0(selectID, "Analysis.md")  
 
 params = lapply(selectID, FUN = function(x){list(channel = x)})
 
