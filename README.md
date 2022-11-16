@@ -87,12 +87,12 @@ List of packages used:
 
 Links to the generated analyses.
 
-  The analysis for [Lifestyle articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_lifestyleAnalysis.html)   
-  The analysis for [Entertainment articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_entertainmentAnalysis.html)   
+  The analysis for [Lifestyle articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_lifestyleAnalysis.html)   
+  The analysis for [Entertainment articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_entertainmentAnalysis.html)   
   The analysis for [Business articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_busAnalysis.html)     
-  The analysis for [Social media articles is available here.](https://pmb-7684/ST558_Project_3/blob/main/data_channel_is_socmedAnalysis.html)   
-  The analysis for [Tech articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_techAnalysis.html)   
-  The analysis for [World articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_worldAnalysis.html)   
+  The analysis for [Social media articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_socmedAnalysis.html)   
+  The analysis for [Tech articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_techAnalysis.html)   
+  The analysis for [World articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_worldAnalysis.html)   
 
 Code used to create the analyses.
 ```
