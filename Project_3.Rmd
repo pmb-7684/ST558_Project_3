@@ -805,6 +805,8 @@ The **RMSE** or Root Mean Square Error is the square root of the variance of the
 
 **MAE** or Mean Absolute Error gives the absolute distance of the observation to the predictions and averaging it over all the given observations.
 
+We will be comparing our models based on minimum RMSE.
+
 ```{r comp,fig.height=15, fig.width=10 }
 
 # Some nomenclature things for sanity.
@@ -832,7 +834,6 @@ The prediction spread of all the models is also depicted through the box plot wi
 
   
 ```{r plots,fig.height=5, fig.width=10}
-
 
 box_df<-data.frame(Actual_Response=selectTest$shares,
                   LinearRegression_Stepwise=predBest$value,
