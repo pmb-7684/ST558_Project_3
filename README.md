@@ -84,7 +84,7 @@ In this project, subsets by data_channel_is_* were produced for automating R Mar
 12. `randomforest` To access random forest algorithms
 13. `tidyr`        A part of the `tidyverse` used for data cleaning
 
-#### Links to the view results of analysis.
+#### Links to the view results of:
 
   The analysis for [Lifestyle articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_lifestyleAnalysis.html)   
   The analysis for [Entertainment articles is available here.](https://pmb-7684.github.io/ST558_Project_3/data_channel_is_entertainmentAnalysis.html)   
