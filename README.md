@@ -1,5 +1,4 @@
-## Predictive Models for 
-## Online New Popularity Data Set 
+## Predictive Models for Online New Popularity Data Set 
 
 The purpose of this repository is to create predictive models and automating R Markdown reports. Analysis are completed on the Online News Popularity Data Set from UCI. Additional information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
 
