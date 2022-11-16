@@ -35,28 +35,30 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE
 # Background / Introduction
 ## Introduction 
 
-The main goal of this page is to analyze OnlineNewsPopularity data using Exploratory Data Analysis (EDA) and apply regression and ensemble methods to predict the response variable ~share using a set of predictor variables optimized using set of variable selection methods. 
+Social and Online media is now perfused into our society and by getting to know how people think and what they like, we get valuable information on how new/information spreads through out a small society or globally and how it affects the members of a community , their thinking and their actions. This information is very useful for product based companies trying to sell products, advertising companies, writers, influencers etc. Not only that, we also know that it also has lot of impact at political and economic changes occurring within a state or country. What is advertised well can make good best sales, going by that theory companies have now started encashing machine learning methods to know about consumer responses from historical data and use it for expanding markets.  
 
-Our first step is to shape the data to get the various data_channel_groups together. This is needed in order to get proper filtering of the required channels in the automation script. The EDA is performed on each group using graphs, tables, and heatmaps. 
- 
-The next step includes creating train and test data for training fit and testing prediction. The next steps includes variable selection /pre-processing of data (if needed) and running 2 Linear regression models.  These models are the first step of performing model fit and predictions. The data may be easily explained by a set of linear equations and may not require complex algorithms that can consume time, cost and may require computation speed. Hence, regression models often are a great start to run predictions.
- 
-The Other methods evaluated here are Random Forest and Boosted Tree method. Both are ensemble methods that use tree based model to evaluate future values. These methods do not have any specified methodology in model fit. They work on the best statistic obtained while constructing the model fit. Theoretically ensemble methods are said to have a good prediction and using this data it will be evaluated on what categories how these models perform.
+The main goal of this project is to analyze a similar OnlineNewsPopularity data using Exploratory Data Analysis (EDA) and apply regression and ensemble methods to predict the response variable '~share' using a set of predictor variables optimized through variable selection methods. That is, we will try to find out what parameters impact number of online shares of information and whether they can help us predict the number of shares from these parameters.
 
-At the end for each channel analysis, all 4 models are compared and best model that suits this category of channel is noted.  
+This OnlineNewsPopularity data is divided into some genre or channel and each individual channel has its characteristics that need to be looked at separately. And some generalization of analysis is necessary as it helps speed up the process and automate the entire analysis at a mouse click.
+
+Our first step is to shape the data to get the various data_channel_groups together in such a format that each channel can be looked into separately . This is needed in order to get proper filtering of the required channels in the automation script. The EDA is performed on each channel using graphs, tables and heatmaps. 
+ 
+The next step includes creating train and test data for train fit and test prediction. Prior to model fitting, variable selection/pre-processing of data (if needed) is done. Two regression models, Linear models are the first step of performing model fit and predictions. The data may be easily explained by a set of linear equations and may not require complex algorithms that can consume time, cost and may require computation speed. Hence, regression models often are a great start to run predictions.
+ 
+The Other method  evaluated hereis two types of ensemble methods- that are Random Forest and Boosted Tree method. Both are types of ensemble methods that use tree based model to evaluate future values. These methods do not have any specified methodology in model fit. They work on the best statistic obtained while constructing the model fit. Theoretically ensemble methods are said to have a good prediction, and using this data it will be evaluated on what categories how these models perform.
+
+At the end for each channel analysis, all 4 models are compared and best model that suits this category of channel is noted.
 
 #### About Data and Data Preparation
-OnlineNewsPopularity data has following useful variables:
-_from models we do for eda and regression/ensemble
 
-The channel categories evaluated are : 'lifestyle','entertainment','bus','socmed','tech' and 'world'.
+There are 48 parameters in the dataset. The channel parameter is actually a categorical variable which will be used for filtering data in this project and form our analysis into different set of channel files. The categories in this are  : 'lifestyle','entertainment','bus','socmed','tech' and 'world'.
 
 The csv file is imported read using `read_csv()`. As we have automated the analysis, we need each channel to be fed into the R code we have and get the analysis and predictions as a different file. The channel categories are in column (or wide) format so they have been converted into long format using `pivot_longer`. The required category is then easily filter by passing the channel variables into the filter code.
 
-Irrelevant columns removed - Note after all the work and cleaning
+Irrelevant columns are removed like URL and timedelta as they do not have any significance in our predictions models. 
 The Exploratory analysis and Modelling was carried on the remaining set of select variables. 
  
- 
+
 ## Package Imports 
 
   * The following packages are required for creating predictive models.
@@ -66,6 +68,8 @@ The Exploratory analysis and Modelling was carried on the remaining set of selec
 3. `ggplot2`- A part of the `tidyverse` used for creating graphics
 4  `caret` - To run the Regression and ensemble methods with Train/Split and cross validation.
 5. `knitr`: To get nice table printing formats, mainly for the contingency tables.
+
+Other packages are summarized below in the code chunk with comments.
 
 ```{r lib, include = FALSE}
 
@@ -82,9 +86,8 @@ library(gridExtra)  # plot with multiple grid objects
 
 ```
 
-
 # Load data and check for NAs 
-```{r }
+```{r dataset }
 data <- read.csv("OnlineNewsPopularity.csv") %>% 
                               rename(
                                     Monday      = `weekday_is_monday`,
@@ -105,7 +108,8 @@ We used read.csv to load in the data.  The UCI site mentioned that `url` and `ti
 
 
 For the automation process, it will be easier if all the channels (ie data_channel_is_*) are in one column.  We used `pivot_longer()` to pivot columns: data_channel_is_lifestyle, data_channel_is_entertainment, data_channel_is_bus, data_channel_is_socmed, data_channel_is_tech, and data_channel_is_world from wide to long format.
-```{r}
+
+```{r pivot1}
 dataPivot <- data %>% pivot_longer(cols = c("data_channel_is_lifestyle", "data_channel_is_entertainment", "data_channel_is_bus","data_channel_is_socmed","data_channel_is_tech", "data_channel_is_world"),names_to = "channel",values_to = "Temp") 
 
 
@@ -114,7 +118,7 @@ newData <- dataPivot %>% filter(Temp != 0) %>% dplyr::select(-Temp)
 
 Now, the individual channel columns are combined into one column named channel.  The variable Temp represents if an article exists for that particular channel.  For the final data set, we will remove any values with 0.  We performed the same pivot_longer() process on the days of the week.
 
-```{r}
+```{r pivot2}
 dataPivot <- newData %>% pivot_longer(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), names_to = "weekday",values_to = "Temp1") 
 
 newData <- dataPivot %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
@@ -123,14 +127,14 @@ newData <- dataPivot %>% filter(Temp1 != 0) %>% dplyr::select(-Temp1)
 # Create Training and Testing Sets
 
 When we run the `Render_Code.R`, this code chunk filters data for each channel type to complete the analysis.
-```{r}
+```{r split1}
 
 selectChannel <- newData %>% filter(channel == params$channel)
 ```
 
 
 To make the data reproducible, we set the seed to 21 and created the training and testing set with a 70% split.
-```{r}
+```{r split2}
 
 set.seed(21)
 trainIndex <- createDataPartition(selectChannel$shares, p = 0.7, list = FALSE)
@@ -140,6 +144,9 @@ selectTest <- selectChannel[-trainIndex, ]
 ```
 
 # Exploratory Data Analysis
+
+The data has been analysed in this sections. This includes basic statistics, summary tables, contingency tables and useful plots. We have tried to capture as much information as we can in this. 
+
 ## Training Data Summary
 
 ```{r eval=FALSE, include=FALSE}
@@ -184,16 +191,16 @@ kable_if <- function(x, ...) if (interactive()) print(x, ...) else knitr::kable(
 ```
 
 
-```{r}
+```{r summary1}
 str(selectTrain)
 ```
 `str()` allows us to view the structure of the data. We see each variable has an appropriate data type.
 
-```{r include=FALSE}
+```{r ,include=FALSE}
 summary(selectTrain)
 ```
 
-```{r}
+```{r summary3}
 selectTrain %>% dplyr::select(shares, starts_with("rate")) %>% summary()
 ```
 This `summary()` provides us with information about the distribution (shape) of  shares (response variable), rate_positive_words, and rate_negative_word.
@@ -252,7 +259,7 @@ If we see black points outside of the whiskers of the boxplot, it represents out
 
 ## Contingency Tables
 
-```{r}
+```{r tab1}
 kable_if(table(selectTrain$channel, selectTrain$weekday))
 
 ```
@@ -260,7 +267,7 @@ Articles per Channel vs Weekday - We can inspect the distribution of articles sh
 
 
 
-```{r}
+```{r tab2}
 
 kable_if(table(selectTrain$weekday, selectTrain$num_keywords))
 ```
@@ -271,40 +278,40 @@ Day of the Week vs Number of Keywords - We can inspect the distribution of numbe
 
 We want to remove any predictor variables that are highly correlated to the response variable which can cause multicollinearity.  If variables have this characteristic it can lead to skewed or misleading results. We created groupings of predictor variables to look at the relationship with our response variable, share and to each other.
 
-```{r }
+```{r tab3}
 ggcorr(selectTrain%>% dplyr::select(n_tokens_title, n_tokens_content, n_unique_tokens, n_non_stop_words, n_non_stop_unique_tokens,  shares),label_round = 2, label = "FALSE", label_size=1)
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  For instance, n_token_title and n_non_stop_unique_tokens has a negative relationship.
 
 
-```{r}
+```{r tab4}
 ggcorr(selectTrain%>% dplyr::select( average_token_length, num_keywords,num_hrefs, num_self_hrefs, num_imgs, num_videos, shares),label_round = 2, label_size=3, label = "FALSE")
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. 
 
-```{r }
+```{r tab5}
 ggcorr(selectTrain%>% dplyr::select(kw_min_min, kw_max_min, kw_avg_min, kw_min_max, kw_max_max,  kw_avg_max, kw_min_avg, kw_max_avg, kw_avg_avg, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. We would expect to use this level of correlation for this grouping of variables.
 
-```{r }
+```{r tab6 }
 ggcorr(selectTrain%>% dplyr::select(self_reference_min_shares, self_reference_max_shares, self_reference_avg_sharess, global_subjectivity, global_sentiment_polarity, global_rate_positive_words, global_rate_negative_words, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  
 
 
-```{r }
+```{r tab7}
 ggcorr(selectTrain%>% dplyr::select(LDA_00, LDA_01, LDA_02, LDA_03, LDA_04,  shares),label_round = 2, label = "FALSE", label_size=3)
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other variables above have a mild relationship to one another.
 
-```{r }
+```{r tab8}
 ggcorr(selectTrain%>% dplyr::select(rate_positive_words, rate_negative_words, avg_positive_polarity, min_positive_polarity, max_positive_polarity,  avg_negative_polarity, min_negative_polarity, max_negative_polarity, shares),label_round = 2, label = "FALSE", label_size=3)
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors.  
 
 
-```{r }
+```{r tab9 }
 ggcorr(selectTrain%>% dplyr::select( title_subjectivity, title_sentiment_polarity, abs_title_subjectivity, abs_title_sentiment_polarity, shares),label_round = 2, label = "FALSE")
 ```
 The correlation chart above does not show any strong relationships between shares and the variables displayed.  We can see many other relationships which is indicated by the darker orange and blue colors. 
@@ -319,7 +326,7 @@ For the custom limitations of correlation maps above, the decision was made not 
 The above observations have been simplified further by categorizing the response variable shares into 'Poor'and 'Good'. This gives information, how data is split between the quantiles of the training data. For ``params$channel`` , the shares below Q2 are grouped Poor and above Q2 as Good 
 The summary statistics can be seen for each category easily and deciphered at more easily here.
 
-```{r, fig.height=10, fig.width=15}
+```{r cat1, fig.height=10, fig.width=15}
 
 q<-quantile(selectTrain$shares,0.5)
 cat_share<-selectTrain%>% 
@@ -332,7 +339,7 @@ head(cat_share,5)
 
 The most basic statistic is assessed here, which is mean across the 2 categories. Not all variables can be informative but the effect of each parameter on the Rating can be seen here. This depicts how each parameter on average has contributed to the shares for each category.
 
-```{r}
+```{r cat2}
 
 
 library(gt)
@@ -349,7 +356,8 @@ means2
 ```
 
 And scatter plots are generated to get an idea on the direction of the predictor variables and to see what is the direction and extent of linearity or non-linearity of the predictors.
-```{r, fig.height=10, fig.width=17}
+
+```{r cat3, fig.height=10, fig.width=17}
 
 
 q<-quantile(cat_share$shares,c(0.25,0.75))
@@ -379,15 +387,15 @@ cat_share %>%
     select_if(~ !any(is.na(.))) %>%   
       ggpairs(aes(colour = Rating,alpha=0.5),
               upper = list(continuous = wrap("cor", title="")))
-
+              
 ```
 
-In order to get good idea of characteristic of content affecting the number of shares we used `pivot_longer`shape our data and bring count of number of videos , pictures etc., for a simple and quick analysis. 
+The next aspect is to check the shape of some predictor variables w.r.t response variable. These mostly are parameters like number of keywords, videos, pictures etc. This specifies if the channel shares are skewed by some these factors and at what extent.For example,shares can be maximum, if the channel has more kewywords and hence, we see a right skewed bar plot.
+```{r cat4, fig.height=7, fig.width=12}
 
-
-```{r, fig.height=7, fig.width=12}
-
-bar_dat<-cat_share %>% select(c('n_tokens_title','n_tokens_content','shares','num_self_hrefs','num_imgs','num_videos','num_keywords','Rating'))
+bar_dat<-cat_share %>% select(c('n_tokens_title','n_tokens_content','shares',
+                                'num_self_hrefs','num_imgs','num_videos','num_keywords',
+                                'Rating'))
 
 ggplot(bar_dat,aes())+
 geom_density(aes(x = shares,fill=Rating,alpha=0.5))
@@ -406,16 +414,19 @@ g6<-ggplot(bar_dat,aes())+
 grid.arrange(g1, g2, g3,g4,g5,g6, ncol = 2, nrow = 3)
   
 ```
+
 #### Exploratory Data Analysis (EDA) with Principal Component Analysis (PCA).
 
-A different aspect of EDA that is tried here. Although we are uncertain if this will be a good exercise or not. But we do see the data set has too many predictor variables and in any industry cost of computations and labor counts. In order to find more efficient way to reduce size of data set and understand variance between variables,we are using Principal Component Analysis on training data to see if the the predictors variables can be used together to determine some relationship with the response variable. Principal Component is a method that has many usages, it is used in dimensionality reduction, for large dataset, and can also help in understanding the relationship among different variables and their impact on the response variable in terms of variance and also an effective method to remove collinearity from the dataset by removing highly correlated predictors. 
+A different aspect of EDA that is tried here. Although, we are uncertain if this will be a good exercise or not. But we do see the data set has too many predictor variables and in any industry cost of computations and labor counts. 
+
+In order to find more efficient way to reduce size of data set and understand variance between variables,we are using Principal Component Analysis on training data to see, if the the predictors variables can be used together to determine some relationship with the response variable. Principal Component is a method that has many usages for datasets with too many predictors. It is used in dimensionality reduction, and can also help in understanding the relationship among different variables and their impact on the response variable in terms of variance and also an effective method to remove collinearity from the dataset by removing highly correlated predictors. 
 
 Here we are using `prcomp` on our train data to find our principal components. Some select variables have been discarded as their magnitude was very less and may /may not have impact into the model but to keep the analysis simple , some critical ones have been considered to demonstrate dimensionality reduction. 
 
-THE PCA plot is plot for variance , another statistic that is critical in understanding relationship between variables. This , plots related to PCA have been captured here in this section.
-These plots can easily tell how much each variable contributes towards the response variable. PC1 holds the maximum variance , PC2 then the next. We have removed some irrelevant variables and tested the model here. 
+The PCA plot is plot for variance, another statistic that is critical in understanding relationship between variables.
+These plots can easily tell how much each variable contributes towards the response variable. PC1 holds the maximum variance , PC2 then the next. We have removed some irrelevant variables and tested the model here.. 
 
-```{r fig.height=10, fig.width=10}
+```{r pca1, fig.height=10, fig.width=10}
 
 PC_Train<-selectTrain %>% select(- c('shares','channel','LDA_00','LDA_01','LDA_02','LDA_03','LDA_04','n_tokens_content','n_non_stop_unique_tokens','weekday'))
 
@@ -439,27 +450,6 @@ ylab = "Cum. Prop of Variance Explained", ylim = c(0, 1), type = 'b')
 
 ```
 
-####  Principal Component selections and related plots on fit results.
-
-```{r}
-var_count<-cumsum(PC_fit$sdev^2/sum(PC_fit$sdev^2))
-
-count=0
-
-for (i in (1:length(var_count)))
-{
-  if (var_count[i]<0.80)
-  { per=var_count[i]
-    count=count+1
-    }
-  else if (var_count[i]>0.80)
-  {
-    break}
-}
-
-print(paste("Number of Principal Components optimized are",count ,"for cumuative variance of 0.80"))
-
-```
 
 # Variable Selection by Correlation Results
 
@@ -597,7 +587,7 @@ trControl = trainControl(method = "cv", number = 5)
 lmFit$results
 
 ```
-```{r}
+```{r btune}
 lmFit$bestTune
 ```
 
@@ -680,8 +670,62 @@ OrgBest <- predict(lmFit3, newdata = stTest)  %>% as_tibble()
 LinearRegression_3 <- postResample(predBest, obs = stTest$shares)
 ```
 
+##  Principal Component selections and Linear Regression with PCA.
 
-# Random Forest
+This chunk of code below selects the principal components from the above PCA code for EDA based on the desired cumulative variance threshold. As there are too many predictor variables, we are going ahead with a threshold of 0.80 i.e. we are taking all predictors that contribute to total 80% of the data. The number of principal components selected can be seen below after the code is implemented.
+
+These principal components selected will be used below in the linear regression model after feeding our PCA fit into the training and test dataset.
+
+```{r pca2 }
+var_count<-cumsum(PC_fit$sdev^2/sum(PC_fit$sdev^2))
+
+count=0
+
+for (i in (1:length(var_count)))
+{
+  if (var_count[i]<0.80)
+  { per=var_count[i]
+    count=count+1
+    }
+  else if (var_count[i]>0.80)
+  {
+    break}
+}
+
+print(paste("Number of Principal Components optimized are",count ,"for cumuative variance of 0.80"))
+
+```
+
+The aim here is to test if PCA helps us reduce the dimensions of our data and utilize this on our regression model. The PCA is very efficient method of feature extraction and can help get maximum information at minimum cost. We will check out a multinomial logistic regression with PCA here.
+The principal components obtained in the above section are used here on train and test data to get PCA fits and then apply linear regression fit on train data and get predictions for test data. It is not expected this may give a very efficient result however, it does help get idea about the predictor variables whether they can be fit enough for a linear model or not.
+
+```{r pca3 }
+
+new_PC <- predict(PC_fit, newdata = PC_Train) %>% as_tibble() 
+res<-selectTrain$shares
+PC_Vars<-data.frame(new_PC[1:count],res)
+head(PC_Vars,5)
+fit <- train(res~ .,method='lm', data=PC_Vars,metric='RMSE')
+
+#apply PCA fit to test data
+PC_Test<-selectTest %>% select(- c('shares','channel','LDA_00','LDA_01',
+                                   'LDA_02','LDA_03','LDA_04','n_tokens_content',
+                                   'n_non_stop_unique_tokens','weekday'))
+
+test_PC<-predict(PC_fit,newdata=PC_Test) %>% as_tibble()
+test_res<-selectTest$shares
+PC_Vars_Test<-data.frame(test_PC[1:count],test_res)
+head(PC_Vars_Test,5)
+lm_predict<-predict(fit,newdata=PC_Vars_Test)%>% as_tibble()
+LinearRegression_2<-postResample(lm_predict, obs = PC_Vars_Test$test_res)
+
+```
+
+# Ensemble Methods
+
+Ensemble methods is a machine learning models that combines several base models in order to produce one optimal predictive model. A step further to the decision trees, Ensemble methods do not rely on one Decision Tree and hope to right decision at each split, they take a sample of Decision Trees, calculate metrics at each split, and make a final predictor based on the aggregated results of the sampled Decision Trees.
+
+## Random Forest
 
 Random forest is a decision tree method. It takes a desired number of bootstrapped samples from the data and builds a tree for each sample. While building the trees, if a split occurs, then only a random sample of trees are averaged.  The average of predictions are used to determine the final model.
 
@@ -715,36 +759,12 @@ Random_Forest<-postResample(rfPredict, obs = rfTest$shares)
 
 ```
 
-## Linear Regression with PCA.
+## Boosted Trees
 
-The aim here is to test if PCA helps us reduce the dimensions of our data and utilize this on our regression model. The PCA is very efficient method of feature extraction and can help get maximum information at minimum cost. We will check out a multinomial logistic regression with PCA here.
-The principal components obtained in the above section are used here on train and test data to get PCA fits and then apply linear regression fit on train data and get predictions for test data. It is not expected this may give a very efficient result however, it does help get idea about the predictor variables whether they can be fit enough for a linear model or not.
+Boosting involves adding ensemble members in sequential manner so that corrections are applied to the predictions made by prior models and outputs a weighted average of these predictions. It is different to random forest in implementation of decision tree split .That is, in this case the decision trees are built in additive manner not in parallel manner as in random forest.
+It is based on weak learners which is high bias and low variance. Boosting looks mainly into reducing bias (and eventually variance, by aggregating the output metric from many models. We have used some cross validation here to tune the parameters. The tuning parameters have been kept small for the `tuneGrid` due to limited processing speed. The method `caret` uses to fit the train data is`gbm`. The fit is plotted using `plot()` here to show the results of cross validation which may get complex to interpret, but we are not worrying about it as `caret` does the work of selecting the best parameters and allocating them to our model fit that can be used directly into predictions. 
 
-```{r }
-
-new_PC <- predict(PC_fit, newdata = PC_Train) %>% as_tibble() 
-res<-selectTrain$shares
-PC_Vars<-data.frame(new_PC[1:count],res)
-head(PC_Vars,5)
-fit <- train(res~ .,method='lm', data=PC_Vars,metric='RMSE')
-
-#apply PCA fit to test data
-PC_Test<-selectTest %>% select(- c('shares','channel','LDA_00','LDA_01',
-                                   'LDA_02','LDA_03','LDA_04','n_tokens_content',
-                                   'n_non_stop_unique_tokens','weekday'))
-
-test_PC<-predict(PC_fit,newdata=PC_Test) %>% as_tibble()
-test_res<-selectTest$shares
-PC_Vars_Test<-data.frame(test_PC[1:count],test_res)
-head(PC_Vars_Test,5)
-lm_predict<-predict(fit,newdata=PC_Vars_Test)%>% as_tibble()
-LinearRegression_2<-postResample(lm_predict, obs = PC_Vars_Test$test_res)
-
-```
-
-
-# Boosted Trees
-```{r }
+```{r boost}
 BT_Train<-selectTrain %>% select(c('num_videos', 'num_imgs','num_keywords',
                                    'global_subjectivity','global_sentiment_polarity',
                                    'global_rate_positive_words','is_weekend',
@@ -765,6 +785,7 @@ tuneGrid = expand.grid(n.trees = c(50,100,200),
            n.minobsinnode = c(3,5)),
            verbose = FALSE)
 
+plot(boostfit)
 boostfit$bestTune
 
 boostpredict<-predict(boostfit,newdata=BT_Test) %>% as_tibble()
@@ -774,35 +795,61 @@ Boosted_Trees<-postResample(boostpredict, obs = BT_Test$shares)
 
 # Model Comparisons.
 
-```{r,fig.height=15, fig.width=10 }
+Linear Regression and Ensemble method results are now put together here for comparison. 
 
-Metrics_df<-data.frame(rbind(LinearRegression_1, LinearRegression_2, LinearRegression_3, Boosted_Trees, Random_Forest))
+Some metrics come up as we see the `postResample` results after doing our fit on testdata that takes not of these metrics after comparison with actual test data values. 
+
+The **RMSE** or Root Mean Square Error is the square root of the variance of the residual error. It tells about the absolute fit of the model to the data–how close the true data values are to the model's predicted values. 
+
+**R-squared** is the proportion of variance in the response variable that can be explained by the predictor variables. In other words, this is a measurement of goodness of fit. A high R-squared means our model has good fit over the training /test data
+
+**MAE** or Mean Absolute Error gives the absolute distance of the observation to the predictions and averaging it over all the given observations.
+
+```{r comp,fig.height=15, fig.width=10 }
+
+# Some nomenclature things for sanity.
+
+LinearRegression_Stepwise_Sel<-LinearRegression_1  
+LinearRegression_Orignal_Var_Sel<-LinearRegression_3   
+Linear_Regression_PCA<-LinearRegression_2 
+
+# Getting out best model in terms of RMSE
+Metrics_df<-data.frame(rbind(LinearRegression_Stepwise_Sel,
+                             LinearRegression_Orignal_Var_Sel,
+                             Linear_Regression_PCA, Boosted_Trees, 
+                             Random_Forest))
 Metrics_df
 best_model<-Metrics_df[which.min(Metrics_df$RMSE), ]
-best_model_name<-best_model$row.names
 rmse_min<-best_model$RMSE
 r2max<-best_model$Rsquared
 
 
 ```
 
-The best model for predicting the number of shares for dataset called `r params$channel` in terms of RMSE is `r best_model_name` with RMSE of `r format(round(rmse_min, 2), nsmall = 2)`. This model also showed an R2 of about `r r2max`, which shows that the predictors of this model  `r ifelse(r2max<0.5,"do not","do")` have significant impact on the  response variable. The prediction spread of all the models is also depicted through the box plot with comparison to the actual test values. 
+The best model for predicting the number of shares for dataset called `r params$channel` in terms of RMSE is `r attributes(best_model)$row.names` with RMSE of `r format(round(rmse_min, 2), nsmall = 2)`. This model also showed an R-Squared of about `r r2max`, which shows that the predictors of this model  `r ifelse(r2max<0.5,"do not","do")` have significant impact on the  response variable. 
 
-## SP left to do sections.: 1) Add Regression/RF test results two model comparisons 2) finishing touches remaining for all codes and all theory.3)  To add remaining content.
-   
+The prediction spread of all the models is also depicted through the box plot with comparison to the actual test values. As we the test actual values have a outlier going very high. To see more improvements in the Linear Regression models we can also remove the outliers in the train and test data and repeat our regression steps. Linear regression may show more bias due to outliers in the data and hence, data cleaning is the concept that comes up often while working with complex dataset as part of pre-processing. However, this needs to cautiously used as valuable information may be lost in this exercise which may change the outcomes of our prediction. However, this box plot is simply to summarize the test predict values as its too hard to print so much of data!.
 
-```{r}
+  
+```{r plots,fig.height=5, fig.width=10}
 
 
 box_df<-data.frame(Actual_Response=selectTest$shares,
-                  Linear_Regression_1=predBest$value,
-                  Linear_Regression_2=lm_predict$value,
+                  LinearRegression_Stepwise=predBest$value,
+                  LinearRegression_Orignal_Variable=OrgBest$value,
+                  LinearRegression_PCA=lm_predict$value,
                   Random_Forest = rfPredict$value,
                   Boosted_Trees=boostpredict$value)
 
-boxplot(box_df,boxlwd = 2, outwex = 0.5, boxwex = 0.2) 
+ggplot(stack(box_df), aes(x = ind, y = values)) +
+  stat_boxplot(geom = "errorbar") +
+  labs(x="Models", y="Response Values") +
+  geom_boxplot(fill = "white", colour = "red") +coord_flip()
 ```
 
+# Conclusion
+
+Different genre of news and information has significant importance in every industry and forecasting user sentiments is one of the critical requirements on which today's news and information content is shaped. To capture the dynamics of every type of population, understanding of the parameters and their affect of online shares is very important. We hope that this analysis becomes useful to anybody to wants to perform step by step evaluation of such large dataset and extract critical information. The codes meant in this analysis are meant to capture both conceptual aspects of the analysis being done along with results. This set of algorithm can also be applied directly to any data set that has similar attributes and results can be quickly obtained. We hope this analysis is helpful going forward to anybody who wants to build similar model comparisons.
 
 
 
@@ -829,14 +876,3 @@ apply(reports, MARGIN = 1,
 
 
 ```
-
-------------------------------------------------------------
-## Smitali 
-SOW
-
-Introduction Section 
-Summary statistics each member to show contribution
-1- Linear Regression - each member 
-Boosted Tree Model (with CV)
-Model comparsions (automation done by 1st member)
-Any other support 
