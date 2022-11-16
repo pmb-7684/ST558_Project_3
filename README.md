@@ -87,12 +87,12 @@ List of packages used:
 
 Links to the generated analyses.
 
-   The analysis for [Lifestyle articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_lifestyleAnalysis.md)
-   The analysis for [Entertainment articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_entertainmentAnalysis.md)
-   The analysis for [Business articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_busAnalysis.md)
-   The analysis for [Social media articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_socmedAnalysis.md)
-   The analysis for [Tech articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_techAnalysis.md)
-   The analysis for [World articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_worldAnalysis.md)
+   The analysis for [Lifestyle articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_lifestyleAnalysis.md)   
+   The analysis for [Entertainment articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_entertainmentAnalysis.md) 
+   The analysis for [Business articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_busAnalysis.md)   
+   The analysis for [Social media articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_socmedAnalysis.md)   
+   The analysis for [Tech articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_techAnalysis.md)   
+   The analysis for [World articles is available here.](https://github.com/pmb-7684/ST558_Project_3/blob/main/data_channel_is_worldAnalysis.md)   
 
 Code used to create the analyses.
 ```
