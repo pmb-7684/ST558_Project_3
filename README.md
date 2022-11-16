@@ -1,7 +1,7 @@
 # Project 3 - Predictive Models   
 ## Smitali Patnaik & Paula Bailey
 
-The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are completed on the Online News Popularity Data Set. Additonal information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
+The purpose of this repository is to create predictive models and automating RMarkdown reports. Analysis are completed on the Online News Popularity Data Set. Additional information about this data can be accessed [here](https://archive.ics.uci.edu/ml/datasets/Online+News+Popularity).
 
 The data contains the following variables:
 
@@ -67,20 +67,32 @@ The data contains the following variables:
 59. abs_title_sentiment_polarity: Absolute polarity level
 60. shares: Number of shares (target)
 
-In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model, and boosted tree. These models were constructed on training data set and than tested on test data set. The best model was selected based on lowest RMSE.
+In this project, subsets by data_channel_is_* were produced for automating RMarkdown reports.  Predictive models used include linear regression models,  random forest model, and boosted tree. These models were constructed on training data set and than tested on testing data set. The best model was selected based on lowest RMSE.
 
 List of packages used:
 
-    pull from final report
+1. `caret`         To run the Regression and ensemble methods with Train/Split and cross validation.
+2. `dplyr`         A part of the `tidyverse` used for manipulating data.
+3. `GGally`        To create ggcorr() and ggpairs() correlation plots .
+4. `glmnet`        To access best subset selection.
+5. `ggplot2`       A part of the `tidyverse` used for creating graphics.
+6. `gridextra`     To plot with multiple grid objects.
+7. `gt`            To test a  low-dimensional null hypothesis against high-dimensional alternative models.
+8. `knitr`         To get nice table printing formats, mainly for the contingency tables.
+9. `leaps`         To identify different best models of different sizes.
+10. `markdown`     To render several output formats.
+11. `MASS`         To access forward and backward selection algorithms
+12. `randomforest` To access random forest algorithms
+13. `tidyr`        A part of the `tidyverse` used for data cleaning
 
 Links to the generated analyses.
 
-    The analysis for Lifestyle articles is available [here].
-    The analysis for Entertainment articles is available [here].
-    The analysis for Business articles is available [here].
-    The analysis for Social media articles is available [here].
-    The analysis for Tech articles is available [here].
-    The analysis for World articles is available [here].
+    The analysis for [Lifestyle articles is available here.]
+    The analysis for [Entertainment articles is available here.]
+    The analysis for [Business articles is available here.]
+    The analysis for [Social media articles is available here.]
+    The analysis for [Tech articles is available here.]
+    The analysis for [World articles is available here.]
 
 Code used to create the analyses.
 ```

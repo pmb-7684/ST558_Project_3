@@ -1,7 +1,7 @@
 selectID <- unique(newData$channel)  
 
 #create filename
-output_file <- paste0(selectID, "Analysis.html")   #should be .md for the project
+output_file <- paste0(selectID, "Analysis.md")   
 #create a group for each team with just the team name parameter
 params = lapply(selectID, FUN = function(x){list(channel = x)})
 
