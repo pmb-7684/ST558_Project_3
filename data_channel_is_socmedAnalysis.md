@@ -1208,6 +1208,8 @@ has good fit over the training /test data
 observation to the predictions and averaging it over all the given
 observations.
 
+We will be comparing our models based on minimum RMSE.
+
 ``` r
 # Some nomenclature things for sanity.
 
